@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - My Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Create Account</h2>
+        <form id="regForm">
+            <input type="text" id="regUser" placeholder="Pili ng Username" required>
+            <input type="password" id="regPass" placeholder="Pili ng Password" required>
+            <button type="submit">Register</button>
+        </form>
+        <p>Meron na account? <a href="index.html">Login na</a></p>
+    </div>
+
+    <script>
+        document.getElementById('regForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('regUser').value;
+            const pass = document.getElementById('regPass').value;
+
+            // Save sa LocalStorage
+            localStorage.setItem('username', user);
+            localStorage.setItem('password', pass);
+
+            alert('Account created! Pwede ka na mag-login.');
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
