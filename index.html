@@ -3,68 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite - Login</title>
+    <title>Studio Lite - Welcome</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #e3f2fd;">
-
-    <div style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1);">
-        <h1 style="text-align: center; color: var(--primary); font-size: 2rem;">Studio Lite site</h1>
+<body style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div class="fade-in" style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow);">
+        <h1 style="text-align: center; color: var(--primary);">Studio Lite site</h1>
         
-        <div id="loginBox">
-            <input type="text" id="lUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
-            <input type="password" id="lPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
-            <button class="btn-primary" onclick="doLogin()">Login</button>
-            <p style="text-align: center;">New member? <a href="#" onclick="toggleAuth()">Create Account</a></p>
-            <p style="text-align: center;"><a href="#" onclick="alert('Contact support or use verified email.')">Forgot Password?</a></p>
+        <div id="loginForm">
+            <input type="text" id="lUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box; border-radius:8px; border:1px solid #ddd;">
+            <input type="password" id="lPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box; border-radius:8px; border:1px solid #ddd;">
+            <button class="btn-primary" onclick="login()" style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold;">LOGIN</button>
+            <p style="text-align:center;">No account? <a href="#" onclick="swap()">Register</a></p>
         </div>
 
-        <div id="regBox" style="display: none;">
-            <input type="text" id="rUser" placeholder="Username" style="width:100%; padding:12px; margin:5px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
-            <input type="password" id="rPass" placeholder="Password" oninput="testPass(this.value)" style="width:100%; padding:12px; margin:5px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
-            <div class="meter"><div id="meter-bar"></div></div>
-            <span id="strength" style="font-size: 0.7rem; font-weight: bold;">NONE</span>
-            <button class="btn-primary" style="margin-top:15px;" onclick="doRegister()">Register</button>
-            <p style="text-align: center;">Already have an account? <a href="#" onclick="toggleAuth()">Login</a></p>
+        <div id="regForm" style="display:none;">
+            <input type="text" id="rUser" placeholder="Username (Unique)" style="width:100%; padding:12px; margin:5px 0; box-sizing:border-box;">
+            <input type="password" id="rPass" placeholder="Password" oninput="validatePass(this.value)" style="width:100%; padding:12px; margin:5px 0; box-sizing:border-box;">
+            <div class="meter-container"><div id="meter-bar"></div></div>
+            <small id="passLabel">Requirement: Letters, Numbers, Symbols</small>
+            <button id="regBtn" disabled onclick="register()" style="width:100%; background:gray; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; margin-top:10px;">CREATE ACCOUNT</button>
+            <p style="text-align:center;"><a href="#" onclick="swap()">Back to Login</a></p>
         </div>
     </div>
 
     <script>
-        function toggleAuth() {
-            document.getElementById('loginBox').style.display = document.getElementById('loginBox').style.display === 'none' ? 'block' : 'none';
-            document.getElementById('regBox').style.display = document.getElementById('regBox').style.display === 'none' ? 'block' : 'none';
+        const db = JSON.parse(localStorage.getItem('studio_db')) || [];
+
+        function swap() {
+            document.getElementById('loginForm').style.display = document.getElementById('loginForm').style.display === 'none' ? 'block' : 'none';
+            document.getElementById('regForm').style.display = document.getElementById('regForm').style.display === 'none' ? 'block' : 'none';
         }
 
-        function testPass(v) {
-            let b = document.getElementById('meter-bar');
-            let s = document.getElementById('strength');
+        function validatePass(v) {
+            let bar = document.getElementById('meter-bar');
+            let btn = document.getElementById('regBtn');
             let p = 0;
             if(v.match(/[a-z]/)) p += 33;
             if(v.match(/[0-9]/)) p += 33;
-            if(v.match(/[@#$!%^&*]/)) p += 34;
-            b.style.width = p + "%";
-            if(p <= 33) { b.style.background = "red"; s.innerText = "EASY"; s.style.color = "red"; }
-            else if(p <= 66) { b.style.background = "orange"; s.innerText = "HARD"; s.style.color = "orange"; }
-            else { b.style.background = "green"; s.innerText = "EXTREME"; s.style.color = "green"; }
-        }
-
-        function doRegister() {
-            const u = document.getElementById('rUser').value;
-            const p = document.getElementById('rPass').value;
-            if(u && p) {
-                localStorage.setItem('username', u);
-                localStorage.setItem('password', p);
-                alert("Account Created!"); toggleAuth();
+            if(v.match(/[^a-zA-Z0-9]/)) p += 34;
+            
+            bar.style.width = p + "%";
+            bar.style.background = p < 100 ? "orange" : "green";
+            
+            if(p >= 100) {
+                btn.disabled = false;
+                btn.style.background = "#1877f2";
+            } else {
+                btn.disabled = true;
+                btn.style.background = "gray";
             }
         }
 
-        function doLogin() {
+        function register() {
+            const u = document.getElementById('rUser').value;
+            const p = document.getElementById('rPass').value;
+            if(db.find(user => user.username === u)) return alert("This name is already created!");
+            
+            db.push({ username: u, password: p, friends: 0, following: 0, followers: 0, posts: 0 });
+            localStorage.setItem('studio_db', JSON.stringify(db));
+            alert("Account Created!"); swap();
+        }
+
+        function login() {
             const u = document.getElementById('lUser').value;
             const p = document.getElementById('lPass').value;
-            if(u === localStorage.getItem('username') && p === localStorage.getItem('password')) {
-                localStorage.setItem('isLoggedIn', 'true');
+            const user = db.find(x => x.username === u && x.password === p);
+            if(user) {
+                localStorage.setItem('currentUser', JSON.stringify(user));
                 window.location.href = 'dashboard.html';
-            } else { alert("Wrong username or password!"); }
+            } else { alert("Invalid Credentials"); }
         }
     </script>
 </body>
