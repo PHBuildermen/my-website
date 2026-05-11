@@ -3,37 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite site - Login</title>
+    <title>Studio Lite - Login</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body style="display: flex; justify-content: center; align-items: center; height: 100vh;">
-    <div class="creator-card" style="width: 350px;">
-        <h1 style="text-align: center; color: #1976d2;">Studio Lite site</h1>
-        <p style="text-align: center; color: #666;">Welcome back! Please login.</p>
-        <form id="loginForm">
-            <input type="text" id="loginUser" placeholder="Username" required style="margin-bottom: 10px;">
-            <input type="password" id="loginPass" placeholder="Password" required style="margin-bottom: 20px;">
-            <button type="submit" class="btn-primary">Login</button>
-        </form>
-        <p style="text-align: center; font-size: 0.9rem; margin-top: 15px;">
-            New here? <a href="register.html" style="color: #1976d2;">Create Account</a>
-        </p>
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+
+    <div style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <h1 style="text-align: center; color: var(--primary);">Studio Lite site</h1>
+        
+        <div id="loginSection">
+            <input type="text" id="loginUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
+            <input type="password" id="loginPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
+            <button class="btn-post" onclick="login()">Login</button>
+            <p style="text-align: center;">New? <a href="#" onclick="toggleForm()">Register</a></p>
+        </div>
+
+        <div id="regSection" style="display: none;">
+            <input type="text" id="regUser" placeholder="Choose Username" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
+            <input type="password" id="regPass" placeholder="Password" oninput="checkStrength(this.value)" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
+            <div class="progress-container"><div id="progress-bar"></div></div>
+            <span id="strength-label" class="strength-text">None</span>
+            <button class="btn-post" onclick="register()">Create Account</button>
+            <p style="text-align: center;">Back to <a href="#" onclick="toggleForm()">Login</a></p>
+        </div>
     </div>
 
     <script>
-        if (localStorage.getItem('isLoggedIn') === 'true') window.location.href = 'dashboard.html';
+        function toggleForm() {
+            const l = document.getElementById('loginSection');
+            const r = document.getElementById('regSection');
+            l.style.display = l.style.display === 'none' ? 'block' : 'none';
+            r.style.display = r.style.display === 'none' ? 'block' : 'none';
+        }
 
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const user = document.getElementById('loginUser').value;
-            const pass = document.getElementById('loginPass').value;
-            if (user === localStorage.getItem('username') && pass === localStorage.getItem('password')) {
+        function checkStrength(val) {
+            let bar = document.getElementById('progress-bar');
+            let label = document.getElementById('strength-label');
+            let s = 0;
+            if (val.match(/[a-zA-Z]/)) s += 33;
+            if (val.match(/[0-9]/)) s += 33;
+            if (val.match(/[@#\$%^&*()_+!]/)) s += 34;
+
+            bar.style.width = s + "%";
+            if(s <= 33) { bar.style.background = "red"; label.innerText = "Easy"; }
+            else if(s <= 66) { bar.style.background = "orange"; label.innerText = "Hard"; }
+            else { bar.style.background = "green"; label.innerText = "Extreme"; }
+        }
+
+        function register() {
+            const u = document.getElementById('regUser').value;
+            const p = document.getElementById('regPass').value;
+            if(u && p) {
+                localStorage.setItem('username', u);
+                localStorage.setItem('password', p);
+                alert("Account created!");
+                toggleForm();
+            }
+        }
+
+        function login() {
+            const u = document.getElementById('loginUser').value;
+            const p = document.getElementById('loginPass').value;
+            if(u === localStorage.getItem('username') && p === localStorage.getItem('password')) {
                 localStorage.setItem('isLoggedIn', 'true');
                 window.location.href = 'dashboard.html';
-            } else {
-                alert('Invalid credentials!');
-            }
-        });
+            } else { alert("Invalid credentials!"); }
+        }
     </script>
 </body>
 </html>
