@@ -6,68 +6,65 @@
     <title>Studio Lite - Login</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #e3f2fd;">
 
-    <div style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-        <h1 style="text-align: center; color: var(--primary);">Studio Lite site</h1>
+    <div style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1);">
+        <h1 style="text-align: center; color: var(--primary); font-size: 2rem;">Studio Lite site</h1>
         
-        <div id="loginSection">
-            <input type="text" id="loginUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
-            <input type="password" id="loginPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
-            <button class="btn-post" onclick="login()">Login</button>
-            <p style="text-align: center;">New? <a href="#" onclick="toggleForm()">Register</a></p>
+        <div id="loginBox">
+            <input type="text" id="lUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            <input type="password" id="lPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            <button class="btn-primary" onclick="doLogin()">Login</button>
+            <p style="text-align: center;">New member? <a href="#" onclick="toggleAuth()">Create Account</a></p>
+            <p style="text-align: center;"><a href="#" onclick="alert('Contact support or use verified email.')">Forgot Password?</a></p>
         </div>
 
-        <div id="regSection" style="display: none;">
-            <input type="text" id="regUser" placeholder="Choose Username" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
-            <input type="password" id="regPass" placeholder="Password" oninput="checkStrength(this.value)" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box;">
-            <div class="progress-container"><div id="progress-bar"></div></div>
-            <span id="strength-label" class="strength-text">None</span>
-            <button class="btn-post" onclick="register()">Create Account</button>
-            <p style="text-align: center;">Back to <a href="#" onclick="toggleForm()">Login</a></p>
+        <div id="regBox" style="display: none;">
+            <input type="text" id="rUser" placeholder="Username" style="width:100%; padding:12px; margin:5px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            <input type="password" id="rPass" placeholder="Password" oninput="testPass(this.value)" style="width:100%; padding:12px; margin:5px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            <div class="meter"><div id="meter-bar"></div></div>
+            <span id="strength" style="font-size: 0.7rem; font-weight: bold;">NONE</span>
+            <button class="btn-primary" style="margin-top:15px;" onclick="doRegister()">Register</button>
+            <p style="text-align: center;">Already have an account? <a href="#" onclick="toggleAuth()">Login</a></p>
         </div>
     </div>
 
     <script>
-        function toggleForm() {
-            const l = document.getElementById('loginSection');
-            const r = document.getElementById('regSection');
-            l.style.display = l.style.display === 'none' ? 'block' : 'none';
-            r.style.display = r.style.display === 'none' ? 'block' : 'none';
+        function toggleAuth() {
+            document.getElementById('loginBox').style.display = document.getElementById('loginBox').style.display === 'none' ? 'block' : 'none';
+            document.getElementById('regBox').style.display = document.getElementById('regBox').style.display === 'none' ? 'block' : 'none';
         }
 
-        function checkStrength(val) {
-            let bar = document.getElementById('progress-bar');
-            let label = document.getElementById('strength-label');
-            let s = 0;
-            if (val.match(/[a-zA-Z]/)) s += 33;
-            if (val.match(/[0-9]/)) s += 33;
-            if (val.match(/[@#\$%^&*()_+!]/)) s += 34;
-
-            bar.style.width = s + "%";
-            if(s <= 33) { bar.style.background = "red"; label.innerText = "Easy"; }
-            else if(s <= 66) { bar.style.background = "orange"; label.innerText = "Hard"; }
-            else { bar.style.background = "green"; label.innerText = "Extreme"; }
+        function testPass(v) {
+            let b = document.getElementById('meter-bar');
+            let s = document.getElementById('strength');
+            let p = 0;
+            if(v.match(/[a-z]/)) p += 33;
+            if(v.match(/[0-9]/)) p += 33;
+            if(v.match(/[@#$!%^&*]/)) p += 34;
+            b.style.width = p + "%";
+            if(p <= 33) { b.style.background = "red"; s.innerText = "EASY"; s.style.color = "red"; }
+            else if(p <= 66) { b.style.background = "orange"; s.innerText = "HARD"; s.style.color = "orange"; }
+            else { b.style.background = "green"; s.innerText = "EXTREME"; s.style.color = "green"; }
         }
 
-        function register() {
-            const u = document.getElementById('regUser').value;
-            const p = document.getElementById('regPass').value;
+        function doRegister() {
+            const u = document.getElementById('rUser').value;
+            const p = document.getElementById('rPass').value;
             if(u && p) {
                 localStorage.setItem('username', u);
                 localStorage.setItem('password', p);
-                alert("Account created!");
-                toggleForm();
+                alert("Account Created!"); toggleAuth();
             }
         }
 
-        function login() {
-            const u = document.getElementById('loginUser').value;
-            const p = document.getElementById('loginPass').value;
+        function doLogin() {
+            const u = document.getElementById('lUser').value;
+            const p = document.getElementById('lPass').value;
             if(u === localStorage.getItem('username') && p === localStorage.getItem('password')) {
                 localStorage.setItem('isLoggedIn', 'true');
                 window.location.href = 'dashboard.html';
-            } else { alert("Invalid credentials!"); }
+            } else { alert("Wrong username or password!"); }
         }
     </script>
 </body>
