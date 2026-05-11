@@ -3,266 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite site - Dashboard</title>
+    <title>Studio Lite - Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- Navbar -->
     <nav class="navbar">
-        <div class="logo">Studio Lite site</div>
-        <div class="settings-dropdown">
-            <button class="icon-btn" onclick="toggleDropdown()">
-                <i class="fas fa-cog"></i>
-            </button>
-            <div id="myDropdown" class="dropdown-content">
-                <button onclick="openProfile()"><i class="fas fa-user"></i> Profile</button>
-                <button onclick="logout()" style="color: red;"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </div>
-        </div>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite site</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <nav class="navbar animate-fade">
-        <div class="logo">Studio Lite site</div>
-        <div class="settings-dropdown">
-            <button class="icon-btn" onclick="toggleDropdown('myDropdown')"><i class="fas fa-cog"></i></button>
-            <div id="myDropdown" class="dropdown-content">
-                <button onclick="openProfile()"><i class="fas fa-user"></i> Profile</button>
-                <button onclick="logout()" style="color: red;"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </div>
+        <button class="icon-btn" onclick="toggleMenu('settings')"><i class="fas fa-cog"></i></button>
+        <div class="nav-title">Studio Lite site</div>
+        <button class="icon-btn"><i class="fas fa-bell"></i></button>
+        
+        <div id="settings" style="display:none; position:absolute; top:60px; left:16px; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; width:150px;">
+            <button onclick="logout()" style="width:100%; border:none; background:none; padding:12px; color:red; text-align:left;">Logout</button>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="search-container animate-fade">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search posts or people..." onkeyup="searchPosts()">
-        </div>
-
-        <div class="creator-card animate-fade">
-            <h3>Create New Post</h3>
-            <input type="text" id="postTitle" placeholder="Post Title">
-            <input type="text" id="postLink" placeholder="Paste Link (URL)">
-            <textarea id="postDesc" rows="3" placeholder="Description (White Font)"></textarea>
-            
-            <div class="custom-controls">
-                <select id="privacySelect">
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                </select>
-                <input type="color" id="colorSelect" value="#1976d2" title="Title Color">
-            </div>
-
-            <div id="uploadLoader"><i class="fas fa-spinner fa-spin"></i> Uploading...</div>
-            <button id="postBtn" class="btn-primary" onclick="submitPost()">Post to Feed</button>
-            <p id="cooldownMsg" style="color: red; font-size: 0.8rem; display: none;">Wait 30s to post again.</p>
-        </div>
-
-        <div id="postFeed"></div>
+    <div style="padding:16px;">
+        <input type="text" id="search" placeholder="Search for people or posts..." onkeyup="renderPosts(this.value)" style="width:100%; padding:10px; border-radius:20px; border:none; background:white; box-shadow:var(--shadow);">
     </div>
 
-    <div id="profileModal" class="modal">
-        <div class="modal-content scale-in">
-            <h3>Account Profile</h3>
-            <img id="profilePreview" src="https://via.placeholder.com/100" class="author-pic" style="width: 100px; height: 100px; border-radius: 50%;">
-            <p><strong id="profName">Username</strong></p>
-            <input type="file" id="imageInput" accept="image/*">
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button class="btn-primary" onclick="saveProfile()">Submit Change</button>
-                <button onclick="closeProfile()" style="border:none; background:none;">Cancel</button>
-            </div>
+    <div id="postFeed"></div>
+
+    <div id="postModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Create Post</h3>
+            <input type="text" id="pTitle" placeholder="Post Title" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <input type="text" id="pLink" placeholder="External Link (URL)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <textarea id="pDesc" rows="4" placeholder="Description (White text on black)" style="width:100%; padding:10px; border:1px solid #ddd;"></textarea>
+            
+            <div id="loader" style="display:none; text-align:center; margin:10px;">Uploading... <i class="fas fa-spinner fa-spin"></i></div>
+            <p id="cdLabel" style="color:red; display:none; text-align:center;">Cooldown: <span id="timer">30</span>s</p>
+            
+            <button id="postBtn" class="btn-post" onclick="processPost()">Post to Feed</button>
+            <button onclick="closeModal()" style="width:100%; background:none; border:none; padding:10px; color:#65676b;">Cancel</button>
         </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-item active"><i class="fas fa-home"></i><span>Home</span></button>
+        <button class="nav-item" onclick="openModal()"><i class="fas fa-plus-circle"></i><span>Post</span></button>
+        <button class="nav-item"><i class="fas fa-video"></i><span>Reels</span></button>
+        <button class="nav-item"><i class="fas fa-store"></i><span>Market</span></button>
+        <button class="nav-item"><i class="fas fa-user-circle"></i><span>Profile</span></button>
     </div>
 
     <script>
-        const currentUser = localStorage.getItem('username');
-        let isCooldown = false;
-        let tempImg = localStorage.getItem('profileImg') || '';
+        const user = localStorage.getItem('username');
+        let cooldown = false;
 
-        // SEARCH SYSTEM
-        function searchPosts() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            renderPosts(query);
-        }
+        function openModal() { document.getElementById('postModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('postModal').style.display = 'none'; }
+        function toggleMenu(id) { let m = document.getElementById(id); m.style.display = m.style.display === 'none' ? 'block' : 'none'; }
 
-        // PROFILE SYSTEM
-        function openProfile() {
-            document.getElementById('profileModal').style.display = 'flex';
-            document.getElementById('profName').innerText = currentUser;
-        }
+        function processPost() {
+            if(cooldown) return;
+            const t = document.getElementById('pTitle').value;
+            const l = document.getElementById('pLink').value;
+            const d = document.getElementById('pDesc').value;
+            if(!t || !l) return alert("Title and Link required!");
 
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const reader = new FileReader();
-            reader.onload = () => { 
-                tempImg = reader.result;
-                document.getElementById('profilePreview').src = tempImg;
-            };
-            reader.readAsDataURL(e.files[0]);
-        });
-
-        function saveProfile() {
-            localStorage.setItem('profileImg', tempImg);
-            alert("Profile updated successfully!");
-            location.reload();
-        }
-
-        // POST SYSTEM
-        function submitPost() {
-            if (isCooldown) return;
-            
-            const title = document.getElementById('postTitle').value;
-            const link = document.getElementById('postLink').value;
-            const desc = document.getElementById('postDesc').value;
-            const color = document.getElementById('colorSelect').value;
-            const privacy = document.getElementById('privacySelect').value;
-
-            if(!title || !link) return alert("Fill in Title and Link!");
-
-            // Uploading Process
-            document.getElementById('uploadLoader').style.display = 'block';
+            document.getElementById('loader').style.display = 'block';
             document.getElementById('postBtn').disabled = true;
 
             setTimeout(() => {
-                const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
-                const newPost = {
-                    id: Date.now(),
-                    title, link, desc, color, privacy,
-                    author: currentUser,
-                    authorImg: localStorage.getItem('profileImg'),
-                    date: new Date().toLocaleString(),
-                    likes: [],
-                    comments: []
-                };
-
-                posts.push(newPost);
-                localStorage.setItem('litePosts', JSON.stringify(posts));
-
-                // Reset Inputs
-                document.getElementById('postTitle').value = '';
-                document.getElementById('postLink').value = '';
-                document.getElementById('postDesc').value = '';
-                document.getElementById('uploadLoader').style.display = 'none';
-
-                // Start Cooldown
-                startCooldown();
+                const posts = JSON.parse(localStorage.getItem('intlPosts')) || [];
+                posts.push({ id: Date.now(), author: user, title: t, link: l, desc: d, date: new Date().toLocaleString(), likes: [] });
+                localStorage.setItem('intlPosts', JSON.stringify(posts));
+                
+                document.getElementById('pTitle').value = "";
+                document.getElementById('pLink').value = "";
+                document.getElementById('pDesc').value = "";
+                document.getElementById('loader').style.display = 'none';
+                
+                startCD();
                 renderPosts();
+                closeModal();
             }, 1500);
         }
 
-        function startCooldown() {
-            isCooldown = true;
-            document.getElementById('cooldownMsg').style.display = 'block';
-            let timer = 30;
-            const interval = setInterval(() => {
-                timer--;
-                if(timer <= 0) {
-                    clearInterval(interval);
-                    isCooldown = false;
-                    document.getElementById('postBtn').disabled = false;
-                    document.getElementById('cooldownMsg').style.display = 'none';
-                }
+        function startCD() {
+            cooldown = true;
+            let time = 30;
+            const label = document.getElementById('cdLabel');
+            const span = document.getElementById('timer');
+            label.style.display = 'block';
+            const tick = setInterval(() => {
+                time--;
+                span.innerText = time;
+                if(time <= 0) { clearInterval(tick); cooldown = false; label.style.display = 'none'; document.getElementById('postBtn').disabled = false; }
             }, 1000);
         }
 
-        function renderPosts(filter = '') {
+        function renderPosts(query = '') {
             const feed = document.getElementById('postFeed');
-            const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
-            
-            const filteredPosts = posts.filter(p => 
-                (p.privacy === 'public' || p.author === currentUser) &&
-                (p.title.toLowerCase().includes(filter) || p.author.toLowerCase().includes(filter))
-            ).reverse();
-
-            feed.innerHTML = filteredPosts.map(p => `
+            const posts = JSON.parse(localStorage.getItem('intlPosts')) || [];
+            feed.innerHTML = posts.filter(p => p.title.toLowerCase().includes(query.toLowerCase()) || p.author.toLowerCase().includes(query.toLowerCase())).reverse().map(p => `
                 <div class="post-card">
-                    <div class="config-menu">
-                        <button onclick="toggleDropdown('drop-${p.id}')"><i class="fas fa-ellipsis-v"></i></button>
-                        <div id="drop-${p.id}" class="dropdown-menu">
-                            <button onclick="alert('Edit coming soon')">Edit</button>
-                            <button onclick="deletePost(${p.id})" style="color:red">Delete</button>
-                            <button onclick="alert('Reported!')">Report</button>
-                        </div>
+                    <div style="position:absolute; top:12px; right:12px; cursor:pointer;" onclick="toggleMenu('opt-${p.id}')"><i class="fas fa-ellipsis-v"></i></div>
+                    <div id="opt-${p.id}" style="display:none; position:absolute; top:35px; right:12px; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.2); border-radius:5px; z-index:5;">
+                        <button onclick="deletePost(${p.id})" style="padding:10px; border:none; background:none; color:red;">Delete</button>
                     </div>
                     <div class="post-header">
-                        <img src="${p.authorImg || 'https://via.placeholder.com/40'}" class="author-pic">
-                        <div class="author-info">
-                            <h4>${p.author}</h4>
-                            <span>${p.date} • ${p.privacy}</span>
-                        </div>
+                        <div class="avatar"></div>
+                        <div><b>${p.author}</b><br><small style="color:#65676b">${p.date}</small></div>
                     </div>
-                    <div class="post-content">
-                        <h2 style="color: ${p.color}">${p.title}</h2>
-                        <p style="color: white; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">${p.desc}</p>
-                    </div>
-                    <a href="${p.link}" target="_blank" class="link-box"><i class="fas fa-link"></i> Visit Link</a>
-                    
-                    <div class="likes-info">
-                        <button onclick="toggleLike(${p.id})"><i class="fa${p.likes.includes(currentUser) ? 's' : 'r'} fa-heart" style="color:red"></i></button>
-                        ${p.likes.length} likes (${p.likes.join(', ')})
-                    </div>
-
-                    <div class="comment-section">
-                        <div id="comments-${p.id}">
-                            ${p.comments.map(c => `<div class="comment"><b>${c.user}:</b> ${c.text}</div>`).join('')}
-                        </div>
-                        <div style="display:flex; gap:5px; margin-top:5px;">
-                            <input type="text" id="input-${p.id}" placeholder="Write a comment..." style="padding:5px;">
-                            <button onclick="addComment(${p.id})" class="btn-primary" style="width:auto; padding:5px 10px;">Send</button>
-                        </div>
-                    </div>
+                    <h3 style="margin:5px 0; color:var(--primary);">${p.title}</h3>
+                    <div class="post-content"><p>${p.desc}</p></div>
+                    <a href="${p.link}" target="_blank" style="text-decoration:none; color:var(--primary); font-weight:bold; font-size:0.9rem;"><i class="fas fa-link"></i> Visit Link</a>
                 </div>
             `).join('');
         }
 
-        // INTERACTIONS
-        function toggleLike(id) {
-            let posts = JSON.parse(localStorage.getItem('litePosts'));
-            const post = posts.find(p => p.id === id);
-            if(post.likes.includes(currentUser)) {
-                post.likes = post.likes.filter(u => u !== currentUser);
-            } else {
-                post.likes.push(currentUser);
-            }
-            localStorage.setItem('litePosts', JSON.stringify(posts));
-            renderPosts();
-        }
-
-        function addComment(id) {
-            const text = document.getElementById(`input-${id}`).value;
-            if(!text) return;
-            let posts = JSON.parse(localStorage.getItem('litePosts'));
-            posts.find(p => p.id === id).comments.push({ user: currentUser, text });
-            localStorage.setItem('litePosts', JSON.stringify(posts));
-            renderPosts();
-        }
-
         function deletePost(id) {
-            let posts = JSON.parse(localStorage.getItem('litePosts'));
-            posts = posts.filter(p => p.id !== id);
-            localStorage.setItem('litePosts', JSON.stringify(posts));
+            let posts = JSON.parse(localStorage.getItem('intlPosts'));
+            localStorage.setItem('intlPosts', JSON.stringify(posts.filter(p => p.id !== id)));
             renderPosts();
-        }
-
-        function toggleDropdown(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === 'block' ? 'none' : 'block';
         }
 
         function logout() { localStorage.removeItem('isLoggedIn'); window.location.href = 'index.html'; }
-        
-        renderPosts();
-    </script>
-</body>
-</html>
-
- 
         renderPosts();
     </script>
 </body>
