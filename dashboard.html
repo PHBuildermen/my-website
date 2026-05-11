@@ -20,122 +20,249 @@
                 <button onclick="logout()" style="color: red;"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
         </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Lite site</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar animate-fade">
+        <div class="logo">Studio Lite site</div>
+        <div class="settings-dropdown">
+            <button class="icon-btn" onclick="toggleDropdown('myDropdown')"><i class="fas fa-cog"></i></button>
+            <div id="myDropdown" class="dropdown-content">
+                <button onclick="openProfile()"><i class="fas fa-user"></i> Profile</button>
+                <button onclick="logout()" style="color: red;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
     </nav>
 
     <div class="container">
-        <!-- Post Creator -->
-        <div class="creator-card">
+        <div class="search-container animate-fade">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search posts or people..." onkeyup="searchPosts()">
+        </div>
+
+        <div class="creator-card animate-fade">
             <h3>Create New Post</h3>
-            <div class="input-group">
-                <input type="text" id="postTitle" placeholder="Post Title">
-            </div>
-            <div class="input-group">
-                <input type="text" id="postLink" placeholder="Paste Link (URL)">
-            </div>
-            <div class="input-group">
-                <textarea id="postDesc" rows="3" placeholder="Description"></textarea>
-            </div>
+            <input type="text" id="postTitle" placeholder="Post Title">
+            <input type="text" id="postLink" placeholder="Paste Link (URL)">
+            <textarea id="postDesc" rows="3" placeholder="Description (White Font)"></textarea>
             
             <div class="custom-controls">
-                <select id="fontSelect">
-                    <option value="'Inter', sans-serif">Default Font</option>
-                    <option value="'Poppins', sans-serif">Modern Poppins</option>
-                    <option value="'Roboto Mono', monospace">Tech Mono</option>
+                <select id="privacySelect">
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
                 </select>
-                <input type="color" id="colorSelect" value="#333333" title="Text Color" style="width: 50px; padding: 2px;">
+                <input type="color" id="colorSelect" value="#1976d2" title="Title Color">
             </div>
 
-            <button class="btn-primary" onclick="submitPost()">Post to Feed</button>
+            <div id="uploadLoader"><i class="fas fa-spinner fa-spin"></i> Uploading...</div>
+            <button id="postBtn" class="btn-primary" onclick="submitPost()">Post to Feed</button>
+            <p id="cooldownMsg" style="color: red; font-size: 0.8rem; display: none;">Wait 30s to post again.</p>
         </div>
 
         <div id="postFeed"></div>
     </div>
 
-    <!-- Profile Modal -->
     <div id="profileModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content scale-in">
             <h3>Account Profile</h3>
-            <img id="profilePreview" src="https://via.placeholder.com/100" class="author-pic" style="width: 100px; height: 100px; margin-bottom: 10px;">
+            <img id="profilePreview" src="https://via.placeholder.com/100" class="author-pic" style="width: 100px; height: 100px; border-radius: 50%;">
             <p><strong id="profName">Username</strong></p>
-            <input type="file" id="imageInput" accept="image/*" style="font-size: 0.7rem; margin-bottom: 20px;">
-            <button class="btn-primary" onclick="closeProfile()">Close</button>
+            <input type="file" id="imageInput" accept="image/*">
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-primary" onclick="saveProfile()">Submit Change</button>
+                <button onclick="closeProfile()" style="border:none; background:none;">Cancel</button>
+            </div>
         </div>
     </div>
 
     <script>
         const currentUser = localStorage.getItem('username');
-        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = 'index.html';
+        let isCooldown = false;
+        let tempImg = localStorage.getItem('profileImg') || '';
 
-        // Dropdown Logic
-        function toggleDropdown() { document.getElementById("myDropdown").style.display = 
-            document.getElementById("myDropdown").style.display === "block" ? "none" : "block"; }
+        // SEARCH SYSTEM
+        function searchPosts() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            renderPosts(query);
+        }
 
-        // Profile & Image Logic
+        // PROFILE SYSTEM
         function openProfile() {
             document.getElementById('profileModal').style.display = 'flex';
             document.getElementById('profName').innerText = currentUser;
-            const savedImg = localStorage.getItem('profileImg');
-            if(savedImg) document.getElementById('profilePreview').src = savedImg;
         }
 
-        function closeProfile() { document.getElementById('profileModal').style.display = 'none'; }
-
-        document.getElementById('imageInput').addEventListener('change', function() {
+        document.getElementById('imageInput').addEventListener('change', function(e) {
             const reader = new FileReader();
-            reader.onload = function() {
-                localStorage.setItem('profileImg', reader.result);
-                document.getElementById('profilePreview').src = reader.result;
-            }
-            reader.readAsDataURL(this.files[0]);
+            reader.onload = () => { 
+                tempImg = reader.result;
+                document.getElementById('profilePreview').src = tempImg;
+            };
+            reader.readAsDataURL(e.files[0]);
         });
 
-        // Posting Logic
+        function saveProfile() {
+            localStorage.setItem('profileImg', tempImg);
+            alert("Profile updated successfully!");
+            location.reload();
+        }
+
+        // POST SYSTEM
         function submitPost() {
+            if (isCooldown) return;
+            
             const title = document.getElementById('postTitle').value;
             const link = document.getElementById('postLink').value;
             const desc = document.getElementById('postDesc').value;
-            const font = document.getElementById('fontSelect').value;
             const color = document.getElementById('colorSelect').value;
-            const date = new Date().toLocaleString();
+            const privacy = document.getElementById('privacySelect').value;
 
-            if(!title || !link) return alert("Title and Link are required!");
+            if(!title || !link) return alert("Fill in Title and Link!");
 
-            const post = { title, link, desc, font, color, date, author: currentUser, authorImg: localStorage.getItem('profileImg') };
-            const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
-            posts.push(post);
-            localStorage.setItem('litePosts', JSON.stringify(posts));
-            
-            location.reload(); // Refresh to show post
+            // Uploading Process
+            document.getElementById('uploadLoader').style.display = 'block';
+            document.getElementById('postBtn').disabled = true;
+
+            setTimeout(() => {
+                const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
+                const newPost = {
+                    id: Date.now(),
+                    title, link, desc, color, privacy,
+                    author: currentUser,
+                    authorImg: localStorage.getItem('profileImg'),
+                    date: new Date().toLocaleString(),
+                    likes: [],
+                    comments: []
+                };
+
+                posts.push(newPost);
+                localStorage.setItem('litePosts', JSON.stringify(posts));
+
+                // Reset Inputs
+                document.getElementById('postTitle').value = '';
+                document.getElementById('postLink').value = '';
+                document.getElementById('postDesc').value = '';
+                document.getElementById('uploadLoader').style.display = 'none';
+
+                // Start Cooldown
+                startCooldown();
+                renderPosts();
+            }, 1500);
         }
 
-        function renderPosts() {
+        function startCooldown() {
+            isCooldown = true;
+            document.getElementById('cooldownMsg').style.display = 'block';
+            let timer = 30;
+            const interval = setInterval(() => {
+                timer--;
+                if(timer <= 0) {
+                    clearInterval(interval);
+                    isCooldown = false;
+                    document.getElementById('postBtn').disabled = false;
+                    document.getElementById('cooldownMsg').style.display = 'none';
+                }
+            }, 1000);
+        }
+
+        function renderPosts(filter = '') {
             const feed = document.getElementById('postFeed');
             const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
-            feed.innerHTML = posts.reverse().map(p => `
+            
+            const filteredPosts = posts.filter(p => 
+                (p.privacy === 'public' || p.author === currentUser) &&
+                (p.title.toLowerCase().includes(filter) || p.author.toLowerCase().includes(filter))
+            ).reverse();
+
+            feed.innerHTML = filteredPosts.map(p => `
                 <div class="post-card">
+                    <div class="config-menu">
+                        <button onclick="toggleDropdown('drop-${p.id}')"><i class="fas fa-ellipsis-v"></i></button>
+                        <div id="drop-${p.id}" class="dropdown-menu">
+                            <button onclick="alert('Edit coming soon')">Edit</button>
+                            <button onclick="deletePost(${p.id})" style="color:red">Delete</button>
+                            <button onclick="alert('Reported!')">Report</button>
+                        </div>
+                    </div>
                     <div class="post-header">
                         <img src="${p.authorImg || 'https://via.placeholder.com/40'}" class="author-pic">
                         <div class="author-info">
                             <h4>${p.author}</h4>
-                            <span><i class="far fa-calendar-alt"></i> ${p.date}</span>
+                            <span>${p.date} • ${p.privacy}</span>
                         </div>
                     </div>
-                    <div class="post-content" style="font-family: ${p.font}; color: ${p.color}">
-                        <h2>${p.title}</h2>
-                        <p>${p.desc}</p>
+                    <div class="post-content">
+                        <h2 style="color: ${p.color}">${p.title}</h2>
+                        <p style="color: white; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">${p.desc}</p>
                     </div>
-                    <a href="${p.link}" target="_blank" class="link-box">
-                        <i class="fas fa-external-link-alt"></i>
-                        <span>Visit Link</span>
-                    </a>
+                    <a href="${p.link}" target="_blank" class="link-box"><i class="fas fa-link"></i> Visit Link</a>
+                    
+                    <div class="likes-info">
+                        <button onclick="toggleLike(${p.id})"><i class="fa${p.likes.includes(currentUser) ? 's' : 'r'} fa-heart" style="color:red"></i></button>
+                        ${p.likes.length} likes (${p.likes.join(', ')})
+                    </div>
+
+                    <div class="comment-section">
+                        <div id="comments-${p.id}">
+                            ${p.comments.map(c => `<div class="comment"><b>${c.user}:</b> ${c.text}</div>`).join('')}
+                        </div>
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <input type="text" id="input-${p.id}" placeholder="Write a comment..." style="padding:5px;">
+                            <button onclick="addComment(${p.id})" class="btn-primary" style="width:auto; padding:5px 10px;">Send</button>
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
 
+        // INTERACTIONS
+        function toggleLike(id) {
+            let posts = JSON.parse(localStorage.getItem('litePosts'));
+            const post = posts.find(p => p.id === id);
+            if(post.likes.includes(currentUser)) {
+                post.likes = post.likes.filter(u => u !== currentUser);
+            } else {
+                post.likes.push(currentUser);
+            }
+            localStorage.setItem('litePosts', JSON.stringify(posts));
+            renderPosts();
+        }
+
+        function addComment(id) {
+            const text = document.getElementById(`input-${id}`).value;
+            if(!text) return;
+            let posts = JSON.parse(localStorage.getItem('litePosts'));
+            posts.find(p => p.id === id).comments.push({ user: currentUser, text });
+            localStorage.setItem('litePosts', JSON.stringify(posts));
+            renderPosts();
+        }
+
+        function deletePost(id) {
+            let posts = JSON.parse(localStorage.getItem('litePosts'));
+            posts = posts.filter(p => p.id !== id);
+            localStorage.setItem('litePosts', JSON.stringify(posts));
+            renderPosts();
+        }
+
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        }
+
         function logout() { localStorage.removeItem('isLoggedIn'); window.location.href = 'index.html'; }
         
-        window.onclick = function(event) { if (!event.target.matches('.icon-btn, .fa-cog')) document.getElementById("myDropdown").style.display = "none"; }
-        
+        renderPosts();
+    </script>
+</body>
+</html>
+
+ 
         renderPosts();
     </script>
 </body>
