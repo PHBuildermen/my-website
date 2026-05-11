@@ -3,103 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Studio Lite</title>
+    <title>Studio Lite site - Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- Navbar -->
     <nav class="navbar">
-        <h1>Studio Lite</h1>
-        <button onclick="logout()" style="background:#ff4757; border:none; color:white; padding:5px 15px; border-radius:5px; cursor:pointer;">Logout</button>
+        <div class="logo">Studio Lite site</div>
+        <div class="settings-dropdown">
+            <button class="icon-btn" onclick="toggleDropdown()">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div id="myDropdown" class="dropdown-content">
+                <button onclick="openProfile()"><i class="fas fa-user"></i> Profile</button>
+                <button onclick="logout()" style="color: red;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
     </nav>
 
     <div class="container">
-        <div class="profile-section">
-            <div class="profile-pic" id="initials">U</div>
-            <div>
-                <h2 style="margin:0;" id="displayName">User Name</h2>
-                <p style="margin:0; color:gray;">Studio Lite Member</p>
+        <!-- Post Creator -->
+        <div class="creator-card">
+            <h3>Create New Post</h3>
+            <div class="input-group">
+                <input type="text" id="postTitle" placeholder="Post Title">
             </div>
+            <div class="input-group">
+                <input type="text" id="postLink" placeholder="Paste Link (URL)">
+            </div>
+            <div class="input-group">
+                <textarea id="postDesc" rows="3" placeholder="Description"></textarea>
+            </div>
+            
+            <div class="custom-controls">
+                <select id="fontSelect">
+                    <option value="'Inter', sans-serif">Default Font</option>
+                    <option value="'Poppins', sans-serif">Modern Poppins</option>
+                    <option value="'Roboto Mono', monospace">Tech Mono</option>
+                </select>
+                <input type="color" id="colorSelect" value="#333333" title="Text Color" style="width: 50px; padding: 2px;">
+            </div>
+
+            <button class="btn-primary" onclick="submitPost()">Post to Feed</button>
         </div>
 
-        <div class="post-card">
-            <h3>Create a Post</h3>
-            <input type="text" id="postTitle" placeholder="Ano ang title ng post mo?">
-            <input type="text" id="postLink" placeholder="Link (URL)">
-            <textarea id="postDesc" rows="3" placeholder="Description..."></textarea>
-            <button class="btn-post" onclick="submitPost()">Post na!</button>
-        </div>
+        <div id="postFeed"></div>
+    </div>
 
-        <hr>
-        <h3>Recent Posts</h3>
-        <div id="postFeed">
-            </div>
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <h3>Account Profile</h3>
+            <img id="profilePreview" src="https://via.placeholder.com/100" class="author-pic" style="width: 100px; height: 100px; margin-bottom: 10px;">
+            <p><strong id="profName">Username</strong></p>
+            <input type="file" id="imageInput" accept="image/*" style="font-size: 0.7rem; margin-bottom: 20px;">
+            <button class="btn-primary" onclick="closeProfile()">Close</button>
+        </div>
     </div>
 
     <script>
-        // Check Login Status
-        if (localStorage.getItem('isLoggedIn') !== 'true') {
-            window.location.href = 'index.html';
+        const currentUser = localStorage.getItem('username');
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = 'index.html';
+
+        // Dropdown Logic
+        function toggleDropdown() { document.getElementById("myDropdown").style.display = 
+            document.getElementById("myDropdown").style.display === "block" ? "none" : "block"; }
+
+        // Profile & Image Logic
+        function openProfile() {
+            document.getElementById('profileModal').style.display = 'flex';
+            document.getElementById('profName').innerText = currentUser;
+            const savedImg = localStorage.getItem('profileImg');
+            if(savedImg) document.getElementById('profilePreview').src = savedImg;
         }
 
-        // Load Profile Info
-        const user = localStorage.getItem('username') || "Guest";
-        document.getElementById('displayName').innerText = user;
-        document.getElementById('initials').innerText = user.charAt(0).toUpperCase();
+        function closeProfile() { document.getElementById('profileModal').style.display = 'none'; }
 
-        // Load Posts from LocalStorage
-        function loadPosts() {
-            const feed = document.getElementById('postFeed');
-            const posts = JSON.parse(localStorage.getItem('studioPosts')) || [];
-            
-            feed.innerHTML = posts.map((post, index) => `
-                <div class="post-card">
-                    <h3>${post.title}</h3>
-                    <p>${post.description}</p>
-                    <a href="${post.link}" target="_blank">Visit Link &rarr;</a>
-                    <br><br>
-                    <small style="color:gray;">Posted by: ${post.author}</small>
-                </div>
-            `).reverse().join('');
-        }
+        document.getElementById('imageInput').addEventListener('change', function() {
+            const reader = new FileReader();
+            reader.onload = function() {
+                localStorage.setItem('profileImg', reader.result);
+                document.getElementById('profilePreview').src = reader.result;
+            }
+            reader.readAsDataURL(this.files[0]);
+        });
 
-        // Submit Post Function
+        // Posting Logic
         function submitPost() {
             const title = document.getElementById('postTitle').value;
             const link = document.getElementById('postLink').value;
             const desc = document.getElementById('postDesc').value;
+            const font = document.getElementById('fontSelect').value;
+            const color = document.getElementById('colorSelect').value;
+            const date = new Date().toLocaleString();
 
-            if(!title || !link || !desc) {
-                alert("Uy, kumpletuhin mo naman ang fields!");
-                return;
-            }
+            if(!title || !link) return alert("Title and Link are required!");
 
-            const newPost = {
-                title: title,
-                link: link,
-                description: desc,
-                author: user
-            };
-
-            const posts = JSON.parse(localStorage.getItem('studioPosts')) || [];
-            posts.push(newPost);
-            localStorage.setItem('studioPosts', JSON.stringify(posts));
-
-            // Clear inputs
-            document.getElementById('postTitle').value = '';
-            document.getElementById('postLink').value = '';
-            document.getElementById('postDesc').value = '';
-
-            loadPosts(); // Refresh feed
+            const post = { title, link, desc, font, color, date, author: currentUser, authorImg: localStorage.getItem('profileImg') };
+            const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
+            posts.push(post);
+            localStorage.setItem('litePosts', JSON.stringify(posts));
+            
+            location.reload(); // Refresh to show post
         }
 
-        function logout() {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = 'index.html';
+        function renderPosts() {
+            const feed = document.getElementById('postFeed');
+            const posts = JSON.parse(localStorage.getItem('litePosts')) || [];
+            feed.innerHTML = posts.reverse().map(p => `
+                <div class="post-card">
+                    <div class="post-header">
+                        <img src="${p.authorImg || 'https://via.placeholder.com/40'}" class="author-pic">
+                        <div class="author-info">
+                            <h4>${p.author}</h4>
+                            <span><i class="far fa-calendar-alt"></i> ${p.date}</span>
+                        </div>
+                    </div>
+                    <div class="post-content" style="font-family: ${p.font}; color: ${p.color}">
+                        <h2>${p.title}</h2>
+                        <p>${p.desc}</p>
+                    </div>
+                    <a href="${p.link}" target="_blank" class="link-box">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>Visit Link</span>
+                    </a>
+                </div>
+            `).join('');
         }
 
-        // Initial Load
-        loadPosts();
+        function logout() { localStorage.removeItem('isLoggedIn'); window.location.href = 'index.html'; }
+        
+        window.onclick = function(event) { if (!event.target.matches('.icon-btn, .fa-cog')) document.getElementById("myDropdown").style.display = "none"; }
+        
+        renderPosts();
     </script>
 </body>
 </html>
