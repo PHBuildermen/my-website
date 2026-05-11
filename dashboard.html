@@ -9,119 +9,234 @@
 <body>
 
     <nav class="navbar">
-        <button class="icon-btn" onclick="toggleMenu('settings')"><i class="fas fa-cog"></i></button>
+        <button class="icon-btn" onclick="toggle('sets')"><i class="fas fa-cog"></i></button>
         <div class="nav-title">Studio Lite site</div>
-        <button class="icon-btn"><i class="fas fa-bell"></i></button>
+        <div style="position:relative;">
+            <button class="icon-btn" onclick="toggle('notifs')"><i class="fas fa-bell"></i></button>
+            <span id="badge" style="position:absolute;top:0;right:0;background:red;color:white;font-size:10px;padding:2px 5px;border-radius:50%;">0</span>
+        </div>
         
-        <div id="settings" style="display:none; position:absolute; top:60px; left:16px; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-radius:8px; width:150px;">
-            <button onclick="logout()" style="width:100%; border:none; background:none; padding:12px; color:red; text-align:left;">Logout</button>
+        <div id="sets" style="display:none; position:absolute; top:65px; left:16px; background:white; box-shadow:var(--shadow); border-radius:10px; width:150px; z-index:5000;">
+            <button onclick="goView('profile')" style="width:100%; padding:15px; border:none; background:none; text-align:left;">Profile</button>
+            <button onclick="logout()" style="width:100%; padding:15px; border:none; background:none; text-align:left; color:red;">Logout</button>
+        </div>
+
+        <div id="notifs" style="display:none; position:absolute; top:65px; right:16px; background:white; box-shadow:var(--shadow); border-radius:10px; width:250px; z-index:5000; max-height:300px; overflow-y:auto;">
+            <p style="padding:10px; font-weight:bold; border-bottom:1px solid #eee;">Notifications</p>
+            <div id="notif-list"></div>
         </div>
     </nav>
 
-    <div style="padding:16px;">
-        <input type="text" id="search" placeholder="Search for people or posts..." onkeyup="renderPosts(this.value)" style="width:100%; padding:10px; border-radius:20px; border:none; background:white; box-shadow:var(--shadow);">
+    <div id="view-home" class="container">
+        <div style="padding:15px;"><input type="text" placeholder="Search for people or posts..." onkeyup="loadFeed(this.value)" style="width:100%; padding:12px; border-radius:25px; border:none; background:white; box-shadow:var(--shadow);"></div>
+        <div id="main-feed"></div>
     </div>
 
-    <div id="postFeed"></div>
+    <div id="view-profile" style="display:none; padding:20px; text-align:center;">
+        <img id="uPic" src="https://via.placeholder.com/150" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);">
+        <h2 id="uName">Name <i id="vCheck" class="fas fa-check-circle" style="color:#2ecc71; display:none;"></i></h2>
+        <p id="uNick" style="color:gray;">@nickname</p>
+        <div style="display:flex; justify-content:center; gap:20px; font-weight:bold; margin:15px 0;">
+            <div><span id="pCount">0</span><br><small>Posts</small></div>
+            <div>1.5k<br><small>Followers</small></div>
+            <div>900<br><small>Following</small></div>
+        </div>
+        <button class="btn-primary" onclick="toggle('editMod')">Edit Profile</button>
+        <hr><div id="my-feed"></div>
+    </div>
 
-    <div id="postModal" class="modal">
+    <div id="postMod" class="modal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">Create Post</h3>
-            <input type="text" id="pTitle" placeholder="Post Title" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
-            <input type="text" id="pLink" placeholder="External Link (URL)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
-            <textarea id="pDesc" rows="4" placeholder="Description (White text on black)" style="width:100%; padding:10px; border:1px solid #ddd;"></textarea>
-            
-            <div id="loader" style="display:none; text-align:center; margin:10px;">Uploading... <i class="fas fa-spinner fa-spin"></i></div>
-            <p id="cdLabel" style="color:red; display:none; text-align:center;">Cooldown: <span id="timer">30</span>s</p>
-            
-            <button id="postBtn" class="btn-post" onclick="processPost()">Post to Feed</button>
-            <button onclick="closeModal()" style="width:100%; background:none; border:none; padding:10px; color:#65676b;">Cancel</button>
+            <h3>Create Post</h3>
+            <input type="text" id="postT" placeholder="Title" style="width:100%; padding:10px; margin-bottom:10px;">
+            <input type="text" id="postL" placeholder="External Link" style="width:100%; padding:10px; margin-bottom:10px;">
+            <textarea id="postD" placeholder="What's on your mind?" rows="4" style="width:100%; padding:10px;"></textarea>
+            <div id="postLoad" style="display:none; text-align:center;">Processing...</div>
+            <p id="postCD" style="display:none; color:red; text-align:center;">Wait <span id="cd">30</span>s</p>
+            <button id="postB" class="btn-primary" onclick="submitPost()">Post Now</button>
+            <button onclick="toggle('postMod')" style="width:100%; background:none; border:none; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="editMod" class="modal">
+        <div class="modal-content">
+            <h3>Edit Profile</h3>
+            <input type="text" id="eName" placeholder="Real Name" style="width:100%; margin-bottom:10px;">
+            <input type="text" id="eNick" placeholder="Nickname" style="width:100%; margin-bottom:10px;">
+            <input type="file" id="eFile" accept="image/*" style="width:100%; margin-bottom:10px;">
+            <div style="display:flex; gap:5px;">
+                <input type="email" id="eMail" placeholder="Add Email" style="flex:1;">
+                <button onclick="simulateVerify()" style="padding:5px;">Link</button>
+            </div>
+            <button class="btn-primary" style="margin-top:15px;" onclick="saveProfile()">Save All</button>
+            <button onclick="toggle('editMod')" style="width:100%; background:none; border:none; margin-top:10px;">Close</button>
+        </div>
+    </div>
+
+    <div id="simMod" class="modal">
+        <div class="modal-content" style="text-align:center;">
+            <h3>Email Verification</h3>
+            <p>Verify <b><span id="targetM"></span></b>?</p>
+            <button class="btn-primary" onclick="finishVerify()">Accept</button>
+            <button onclick="toggle('simMod')" style="width:100%; background:red; color:white; border:none; padding:10px; border-radius:8px; margin-top:10px;">Decline</button>
         </div>
     </div>
 
     <div class="bottom-nav">
-        <button class="nav-item active"><i class="fas fa-home"></i><span>Home</span></button>
-        <button class="nav-item" onclick="openModal()"><i class="fas fa-plus-circle"></i><span>Post</span></button>
+        <button class="nav-item active" onclick="goView('home')"><i class="fas fa-home"></i><span>Home</span></button>
+        <button class="nav-item" onclick="toggle('postMod')"><i class="fas fa-plus-circle"></i><span>Post</span></button>
         <button class="nav-item"><i class="fas fa-video"></i><span>Reels</span></button>
         <button class="nav-item"><i class="fas fa-store"></i><span>Market</span></button>
-        <button class="nav-item"><i class="fas fa-user-circle"></i><span>Profile</span></button>
+        <button class="nav-item" onclick="goView('profile')"><i class="fas fa-user-circle"></i><span>Profile</span></button>
     </div>
 
     <script>
         const user = localStorage.getItem('username');
-        let cooldown = false;
+        let cd = false;
+        let data = JSON.parse(localStorage.getItem('studio_data')) || {
+            real: "Studio Member", nick: user, pic: "https://via.placeholder.com/150",
+            email: "", verified: false, nTime: 0, pTime: 0, notifs: []
+        };
 
-        function openModal() { document.getElementById('postModal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('postModal').style.display = 'none'; }
-        function toggleMenu(id) { let m = document.getElementById(id); m.style.display = m.style.display === 'none' ? 'block' : 'none'; }
+        function toggle(id) { let e = document.getElementById(id); e.style.display = (e.style.display==='flex'||e.style.display==='block') ? 'none' : (id.includes('Mod')?'flex':'block'); }
+        
+        function goView(v) {
+            document.getElementById('view-home').style.display = v==='home'?'block':'none';
+            document.getElementById('view-profile').style.display = v==='profile'?'block':'none';
+            if(v==='profile') loadProfile();
+            document.querySelectorAll('.nav-item').forEach((b,i)=> b.classList.toggle('active', (i===0&&v==='home')||(i===4&&v==='profile')));
+        }
 
-        function processPost() {
-            if(cooldown) return;
-            const t = document.getElementById('pTitle').value;
-            const l = document.getElementById('pLink').value;
-            const d = document.getElementById('pDesc').value;
-            if(!t || !l) return alert("Title and Link required!");
+        function loadProfile() {
+            document.getElementById('uPic').src = data.pic;
+            document.getElementById('uName').innerHTML = data.real + (data.verified ? ' <i class="fas fa-check-circle" style="color:#2ecc71"></i>' : '');
+            document.getElementById('uNick').innerText = "@" + data.nick;
+            let posts = JSON.parse(localStorage.getItem('studio_posts')) || [];
+            let my = posts.filter(p => p.author === user);
+            document.getElementById('pCount').innerText = my.length;
+            loadFeed('', 'my-feed');
+        }
 
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('postBtn').disabled = true;
+        function saveProfile() {
+            const now = Date.now();
+            const n = document.getElementById('eName').value;
+            const nk = document.getElementById('eNick').value;
+            const f = document.getElementById('eFile').files[0];
+
+            if(n !== data.real && (now - data.nTime < 2592000000)) return alert("Name change allowed every 30 days!");
+            if(f && (now - data.pTime < 86400000)) return alert("Picture change allowed every 24 hours!");
+
+            if(f) {
+                let r = new FileReader();
+                r.onload = (e) => { data.pic = e.target.result; data.pTime = now; finishSave(n,nk); };
+                r.readAsDataURL(f);
+            } else { finishSave(n,nk); }
+        }
+
+        function finishSave(n,nk) {
+            if(n !== data.real) data.nTime = Date.now();
+            data.real = n; data.nick = nk;
+            addNotif("Profile Updated Successfully");
+            localStorage.setItem('studio_data', JSON.stringify(data));
+            location.reload();
+        }
+
+        function simulateVerify() {
+            let m = document.getElementById('eMail').value;
+            if(!m.includes('@')) return alert("Invalid Email");
+            document.getElementById('targetM').innerText = m; toggle('simMod');
+        }
+
+        function finishVerify() {
+            data.email = document.getElementById('targetM').innerText; data.verified = true;
+            addNotif("Email Verified: " + data.email);
+            localStorage.setItem('studio_data', JSON.stringify(data));
+            location.reload();
+        }
+
+        function submitPost() {
+            if(cd) return;
+            const t = document.getElementById('postT').value;
+            const l = document.getElementById('postL').value;
+            const d = document.getElementById('postD').value;
+            if(!t || !l) return alert("Title and Link Required!");
+
+            document.getElementById('postLoad').style.display = 'block';
+            document.getElementById('postB').disabled = true;
 
             setTimeout(() => {
-                const posts = JSON.parse(localStorage.getItem('intlPosts')) || [];
+                let posts = JSON.parse(localStorage.getItem('studio_posts')) || [];
                 posts.push({ id: Date.now(), author: user, title: t, link: l, desc: d, date: new Date().toLocaleString(), likes: [] });
-                localStorage.setItem('intlPosts', JSON.stringify(posts));
-                
-                document.getElementById('pTitle').value = "";
-                document.getElementById('pLink').value = "";
-                document.getElementById('pDesc').value = "";
-                document.getElementById('loader').style.display = 'none';
-                
-                startCD();
-                renderPosts();
-                closeModal();
+                localStorage.setItem('studio_posts', JSON.stringify(posts));
+                document.getElementById('postLoad').style.display = 'none';
+                startCD(); loadFeed(); toggle('postMod');
             }, 1500);
         }
 
         function startCD() {
-            cooldown = true;
-            let time = 30;
-            const label = document.getElementById('cdLabel');
-            const span = document.getElementById('timer');
-            label.style.display = 'block';
-            const tick = setInterval(() => {
-                time--;
-                span.innerText = time;
-                if(time <= 0) { clearInterval(tick); cooldown = false; label.style.display = 'none'; document.getElementById('postBtn').disabled = false; }
+            cd = true; let s = 30;
+            document.getElementById('postCD').style.display = 'block';
+            let t = setInterval(() => {
+                s--; document.getElementById('cd').innerText = s;
+                if(s<=0) { clearInterval(t); cd = false; document.getElementById('postCD').style.display = 'none'; document.getElementById('postB').disabled = false; }
             }, 1000);
         }
 
-        function renderPosts(query = '') {
-            const feed = document.getElementById('postFeed');
-            const posts = JSON.parse(localStorage.getItem('intlPosts')) || [];
-            feed.innerHTML = posts.filter(p => p.title.toLowerCase().includes(query.toLowerCase()) || p.author.toLowerCase().includes(query.toLowerCase())).reverse().map(p => `
+        function loadFeed(q = '', target = 'main-feed') {
+            const feed = document.getElementById(target);
+            let posts = JSON.parse(localStorage.getItem('studio_posts')) || [];
+            let filter = posts.filter(p => p.title.toLowerCase().includes(q.toLowerCase())).reverse();
+            if(target === 'my-feed') filter = filter.filter(p => p.author === user);
+
+            feed.innerHTML = filter.map(p => `
                 <div class="post-card">
-                    <div style="position:absolute; top:12px; right:12px; cursor:pointer;" onclick="toggleMenu('opt-${p.id}')"><i class="fas fa-ellipsis-v"></i></div>
-                    <div id="opt-${p.id}" style="display:none; position:absolute; top:35px; right:12px; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.2); border-radius:5px; z-index:5;">
-                        <button onclick="deletePost(${p.id})" style="padding:10px; border:none; background:none; color:red;">Delete</button>
-                    </div>
                     <div class="post-header">
-                        <div class="avatar"></div>
-                        <div><b>${p.author}</b><br><small style="color:#65676b">${p.date}</small></div>
+                        <img src="${p.author === user ? data.pic : 'https://via.placeholder.com/45'}" class="avatar">
+                        <div><b>${p.author}</b><br><small>${p.date}</small></div>
                     </div>
-                    <h3 style="margin:5px 0; color:var(--primary);">${p.title}</h3>
-                    <div class="post-content"><p>${p.desc}</p></div>
-                    <a href="${p.link}" target="_blank" style="text-decoration:none; color:var(--primary); font-weight:bold; font-size:0.9rem;"><i class="fas fa-link"></i> Visit Link</a>
+                    <h3 style="color:var(--primary); margin:5px 0;">${p.title}</h3>
+                    <div class="post-desc">${p.desc}</div>
+                    <a href="${p.link}" target="_blank" style="text-decoration:none; color:var(--primary); font-weight:bold; font-size:0.85rem;"><i class="fas fa-link"></i> Visit Link</a>
+                    <hr>
+                    <div style="display:flex; gap:20px;">
+                        <button onclick="like(${p.id})" style="border:none; background:none; cursor:pointer;"><i class="${p.likes.includes(user)?'fas':'far'} fa-heart" style="color:red"></i> ${p.likes.length}</button>
+                        <span><i class="far fa-comment"></i> Comment</span>
+                    </div>
                 </div>
             `).join('');
         }
 
-        function deletePost(id) {
-            let posts = JSON.parse(localStorage.getItem('intlPosts'));
-            localStorage.setItem('intlPosts', JSON.stringify(posts.filter(p => p.id !== id)));
-            renderPosts();
+        function like(id) {
+            let posts = JSON.parse(localStorage.getItem('studio_posts'));
+            let p = posts.find(x => x.id === id);
+            if(p.likes.includes(user)) p.likes = p.likes.filter(u => u !== user);
+            else p.likes.push(user);
+            localStorage.setItem('studio_posts', JSON.stringify(posts));
+            loadFeed();
+        }
+
+        function addNotif(m) {
+            data.notifs.unshift({ m: m, d: new Date().toLocaleTimeString() });
+            localStorage.setItem('studio_data', JSON.stringify(data));
+            renderNotifs();
+        }
+
+        function renderNotifs() {
+            document.getElementById('badge').innerText = data.notifs.length;
+            document.getElementById('notif-list').innerHTML = data.notifs.map(n => `<div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">${n.m}<br><small color="gray">${n.d}</small></div>`).join('');
         }
 
         function logout() { localStorage.removeItem('isLoggedIn'); window.location.href = 'index.html'; }
-        renderPosts();
+        
+        renderNotifs(); loadFeed();
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Lite - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
