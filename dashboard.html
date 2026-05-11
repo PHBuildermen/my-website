@@ -121,122 +121,165 @@
             const now = Date.now();
             const n = document.getElementById('eName').value;
             const nk = document.getElementById('eNick').value;
-            const f = document.getElementById('eFile').files[0];
-
-            if(n !== data.real && (now - data.nTime < 2592000000)) return alert("Name change allowed every 30 days!");
-            if(f && (now - data.pTime < 86400000)) return alert("Picture change allowed every 24 hours!");
-
-            if(f) {
-                let r = new FileReader();
-                r.onload = (e) => { data.pic = e.target.result; data.pTime = now; finishSave(n,nk); };
-                r.readAsDataURL(f);
-            } else { finishSave(n,nk); }
-        }
-
-        function finishSave(n,nk) {
-            if(n !== data.real) data.nTime = Date.now();
-            data.real = n; data.nick = nk;
-            addNotif("Profile Updated Successfully");
-            localStorage.setItem('studio_data', JSON.stringify(data));
-            location.reload();
-        }
-
-        function simulateVerify() {
-            let m = document.getElementById('eMail').value;
-            if(!m.includes('@')) return alert("Invalid Email");
-            document.getElementById('targetM').innerText = m; toggle('simMod');
-        }
-
-        function finishVerify() {
-            data.email = document.getElementById('targetM').innerText; data.verified = true;
-            addNotif("Email Verified: " + data.email);
-            localStorage.setItem('studio_data', JSON.stringify(data));
-            location.reload();
-        }
-
-        function submitPost() {
-            if(cd) return;
-            const t = document.getElementById('postT').value;
-            const l = document.getElementById('postL').value;
-            const d = document.getElementById('postD').value;
-            if(!t || !l) return alert("Title and Link Required!");
-
-            document.getElementById('postLoad').style.display = 'block';
-            document.getElementById('postB').disabled = true;
-
-            setTimeout(() => {
-                let posts = JSON.parse(localStorage.getItem('studio_posts')) || [];
-                posts.push({ id: Date.now(), author: user, title: t, link: l, desc: d, date: new Date().toLocaleString(), likes: [] });
-                localStorage.setItem('studio_posts', JSON.stringify(posts));
-                document.getElementById('postLoad').style.display = 'none';
-                startCD(); loadFeed(); toggle('postMod');
-            }, 1500);
-        }
-
-        function startCD() {
-            cd = true; let s = 30;
-            document.getElementById('postCD').style.display = 'block';
-            let t = setInterval(() => {
-                s--; document.getElementById('cd').innerText = s;
-                if(s<=0) { clearInterval(t); cd = false; document.getElementById('postCD').style.display = 'none'; document.getElementById('postB').disabled = false; }
-            }, 1000);
-        }
-
-        function loadFeed(q = '', target = 'main-feed') {
-            const feed = document.getElementById(target);
-            let posts = JSON.parse(localStorage.getItem('studio_posts')) || [];
-            let filter = posts.filter(p => p.title.toLowerCase().includes(q.toLowerCase())).reverse();
-            if(target === 'my-feed') filter = filter.filter(p => p.author === user);
-
-            feed.innerHTML = filter.map(p => `
-                <div class="post-card">
-                    <div class="post-header">
-                        <img src="${p.author === user ? data.pic : 'https://via.placeholder.com/45'}" class="avatar">
-                        <div><b>${p.author}</b><br><small>${p.date}</small></div>
-                    </div>
-                    <h3 style="color:var(--primary); margin:5px 0;">${p.title}</h3>
-                    <div class="post-desc">${p.desc}</div>
-                    <a href="${p.link}" target="_blank" style="text-decoration:none; color:var(--primary); font-weight:bold; font-size:0.85rem;"><i class="fas fa-link"></i> Visit Link</a>
-                    <hr>
-                    <div style="display:flex; gap:20px;">
-                        <button onclick="like(${p.id})" style="border:none; background:none; cursor:pointer;"><i class="${p.likes.includes(user)?'fas':'far'} fa-heart" style="color:red"></i> ${p.likes.length}</button>
-                        <span><i class="far fa-comment"></i> Comment</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function like(id) {
-            let posts = JSON.parse(localStorage.getItem('studio_posts'));
-            let p = posts.find(x => x.id === id);
-            if(p.likes.includes(user)) p.likes = p.likes.filter(u => u !== user);
-            else p.likes.push(user);
-            localStorage.setItem('studio_posts', JSON.stringify(posts));
-            loadFeed();
-        }
-
-        function addNotif(m) {
-            data.notifs.unshift({ m: m, d: new Date().toLocaleTimeString() });
-            localStorage.setItem('studio_data', JSON.stringify(data));
-            renderNotifs();
-        }
-
-        function renderNotifs() {
-            document.getElementById('badge').innerText = data.notifs.length;
-            document.getElementById('notif-list').innerHTML = data.notifs.map(n => `<div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">${n.m}<br><small color="gray">${n.d}</small></div>`).join('');
-        }
-
-        function logout() { localStorage.removeItem('isLoggedIn'); window.location.href = 'index.html'; }
-        
-        renderNotifs(); loadFeed();
-    </script>
-</body>
-</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite - Dashboard</title>
+    <title>Studio Lite Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-title">Studio Lite site</div>
+        <button class="icon-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+    </nav>
+
+    <div id="homeView" class="fade-in" style="padding:15px;">
+        <div id="feedList"></div>
+    </div>
+
+    <div id="reelsView" class="fade-in" style="display:none; padding:15px;">
+        <div id="reelsList"></div>
+    </div>
+
+    <div id="profileView" class="fade-in" style="display:none;">
+        <div class="stat-box">
+            <div class="stat-item"><b id="sFriends">0</b>Friends</div>
+            <div class="stat-item"><b id="sFollowers">0</b>Followers</div>
+            <div class="stat-item"><b id="sFollowing">0</b>Following</div>
+            <div class="stat-item"><b id="sPosts">0</b>Posts</div>
+        </div>
+        <div id="myHistory"></div>
+    </div>
+
+    <div id="uploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background:white; padding:20px; border-radius:15px; width:90%; max-width:400px;">
+            <h3>Upload Content</h3>
+            <select id="uploadType" style="width:100%; padding:10px; margin-bottom:10px;">
+                <option value="post">Standard Post</option>
+                <option value="reel">Reel (Video)</option>
+            </select>
+            <input type="text" id="uTitle" placeholder="Title" style="width:100%; margin-bottom:10px;">
+            <input type="file" id="uFile" style="width:100%; margin-bottom:10px;">
+            <div id="progContainer" style="display:none;">
+                <progress id="progBar" value="0" max="100" style="width:100%;"></progress>
+                <p id="progText" style="font-size:12px;">Simulating Data Usage...</p>
+            </div>
+            <button onclick="handleUpload()" class="btn-primary" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px;">UPLOAD</button>
+            <button onclick="closeUpload()" style="width:100%; background:none; border:none; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="show('home')"><i class="fas fa-home"></i><span>Home</span></button>
+        <button class="nav-item" onclick="show('reels')"><i class="fas fa-play-circle"></i><span>Reels</span></button>
+        <button class="nav-item" onclick="openUpload()"><i class="fas fa-plus-square"></i><span>Upload</span></button>
+        <button class="nav-item" onclick="show('profile')"><i class="fas fa-user-circle"></i><span>Profile</span></button>
+    </div>
+
+    <script>
+        let user = JSON.parse(localStorage.getItem('currentUser'));
+        if(!user) window.location.href = 'index.html';
+
+        let posts = JSON.parse(localStorage.getItem('all_posts')) || [];
+        let reels = JSON.parse(localStorage.getItem('all_reels')) || [];
+
+        function show(v) {
+            document.getElementById('homeView').style.display = v==='home'?'block':'none';
+            document.getElementById('reelsView').style.display = v==='reels'?'block':'none';
+            document.getElementById('profileView').style.display = v==='profile'?'block':'none';
+            if(v==='profile') refreshStats();
+            renderAll();
+        }
+
+        function refreshStats() {
+            document.getElementById('sFriends').innerText = user.friends;
+            document.getElementById('sFollowers').innerText = user.followers;
+            document.getElementById('sFollowing').innerText = user.following;
+            document.getElementById('sPosts').innerText = posts.filter(p => p.author === user.username).length + reels.filter(r => r.author === user.username).length;
+        }
+
+        function openUpload() { document.getElementById('uploadModal').style.display = 'flex'; }
+        function closeUpload() { document.getElementById('uploadModal').style.display = 'none'; }
+
+        function handleUpload() {
+            const type = document.getElementById('uploadType').value;
+            const file = document.getElementById('uFile').files[0];
+            const title = document.getElementById('uTitle').value;
+            if(!file || !title) return alert("Select file and title!");
+
+            document.getElementById('progContainer').style.display = 'block';
+            let p = 0;
+            let iv = setInterval(() => {
+                p += 10;
+                document.getElementById('progBar').value = p;
+                if(p >= 100) {
+                    clearInterval(iv);
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = { id: Date.now(), title, author: user.username, data: e.target.result, likes: 0, views: 0, likedBy: [] };
+                        if(type === 'post') posts.push(content); else reels.push(content);
+                        localStorage.setItem('all_posts', JSON.stringify(posts));
+                        localStorage.setItem('all_reels', JSON.stringify(reels));
+                        alert("Upload Complete! Data simulated.");
+                        location.reload();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }, 300);
+        }
+
+        function renderAll() {
+            const f = document.getElementById('feedList');
+            f.innerHTML = posts.map(p => `
+                <div class="post-card fade-in" style="background:white; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:var(--shadow);">
+                    <b>${p.author}</b>
+                    <h3>${p.title}</h3>
+                    <img src="${p.data}" style="width:100%; border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                        <button onclick="likeItem(${p.id}, 'post')" style="border:none; background:none;"><i class="fas fa-heart" style="color:red"></i> ${p.likes}</button>
+                        <span class="view-count"><i class="fas fa-eye"></i> ${p.views} Views</span>
+                    </div>
+                </div>
+            `).reverse().join('');
+
+            const r = document.getElementById('reelsList');
+            r.innerHTML = reels.map(v => `
+                <div class="post-card fade-in" style="background:white; padding:15px; margin-bottom:15px; border-radius:12px;">
+                    <b>${v.author}</b>
+                    <h3>${v.title}</h3>
+                    <video class="reel-video" src="${v.data}" onplay="viewItem(${v.id})" controls></video>
+                    <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                        <button onclick="likeItem(${v.id}, 'reel')" style="border:none; background:none;"><i class="fas fa-heart" style="color:red"></i> ${v.likes}</button>
+                        <span class="view-count"><i class="fas fa-eye"></i> ${v.views} Views</span>
+                    </div>
+                </div>
+            `).reverse().join('');
+        }
+
+        function likeItem(id, type) {
+            let list = type === 'post' ? posts : reels;
+            let item = list.find(x => x.id === id);
+            if(item.likedBy.includes(user.username)) return alert("Already liked!");
+            item.likes++;
+            item.likedBy.push(user.username);
+            localStorage.setItem(type === 'post' ? 'all_posts' : 'all_reels', JSON.stringify(list));
+            renderAll();
+        }
+
+        function viewItem(id) {
+            let reel = reels.find(x => x.id === id);
+            reel.views++;
+            localStorage.setItem('all_reels', JSON.stringify(reels));
+            renderAll();
+        }
+
+        function logout() { localStorage.removeItem('currentUser'); window.location.href = 'index.html'; }
+
+        renderAll();
+    </script>
+</body>
+</html>
+
