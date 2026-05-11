@@ -18,19 +18,41 @@
     </div>
 
     <script>
+        // 1. SECURITY CHECK: Kung naka-login na, diretso na sa dashboard
+        window.onload = function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (isLoggedIn === 'true') {
+                window.location.href = 'dashboard.html';
+            }
+        };
+
+        // 2. LOGIN LOGIC
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            
             const user = document.getElementById('loginUser').value;
             const pass = document.getElementById('loginPass').value;
             
-            // Kukunin ang data sa LocalStorage
+            // Kukunin ang saved data mula sa LocalStorage
             const storedUser = localStorage.getItem('username');
             const storedPass = localStorage.getItem('password');
 
+            // Check kung may laman ang storage (kung nag-register na)
+            if (!storedUser) {
+                alert('Walang account na nahanap. Mag-register muna!');
+                window.location.href = 'register.html';
+                return;
+            }
+
+            // Validating credentials
             if (user === storedUser && pass === storedPass) {
-                alert('Success! Welcome to your website.');
+                // I-set ang 'isLoggedIn' flag bago lumipat ng page
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                alert('Success! Redirecting to dashboard...');
+                window.location.href = 'dashboard.html';
             } else {
-                alert('Mali ang username o password!');
+                alert('Mali ang username o password. Subukan muli.');
             }
         });
     </script>
