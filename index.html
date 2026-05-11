@@ -3,127 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Lite - Auth</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div class="fade-in" style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow);">
+        <h1 style="text-align: center; color: var(--primary);">Studio Lite site</h1>
+        
+        <div id="loginForm">
+            <input type="text" id="lUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+            <input type="password" id="lPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
+            <button onclick="login()" style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold;">LOGIN</button>
+            <p style="text-align:center;">New? <a href="#" onclick="swap()">Register</a></p>
+        </div>
+
+        <div id="regForm" style="display:none;">
+            <input type="text" id="rUser" placeholder="Unique Username" style="width:100%; padding:12px; margin:5px 0; border:1px solid #ddd; border-radius:8px;">
+            <input type="password" id="rPass" placeholder="Extreme Password" oninput="validatePass(this.value)" style="width:100%; padding:12px; margin:5px 0; border:1px solid #ddd; border-radius:8px;">
+            <div class="meter-container"><div id="meter-bar"></div></div>
+            <small id="passLabel" style="color:gray;">Add Letters, Numbers, and Symbols</small>
+            <button id="regBtn" disabled onclick="register()" style="width:100%; background:gray; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; margin-top:15px; cursor:not-allowed;">CREATE ACCOUNT</button>
+            <p style="text-align:center;"><a href="#" onclick="swap()">Back to Login</a></p>
+        </div>
+    </div>
+
+    <script>
+        function getDB() { return JSON.parse(localStorage.getItem('studio_db')) || []; }
+        function swap() { document.getElementById('loginForm').style.display = document.getElementById('loginForm').style.display === 'none' ? 'block' : 'none'; document.getElementById('regForm').style.display = document.getElementById('regForm').style.display === 'none' ? 'block' : 'none'; }
+
+        function validatePass(v) {
+            let bar = document.getElementById('meter-bar');
+            let btn = document.getElementById('regBtn');
+            let p = 0;
+            if(v.match(/[a-z]/)) p += 33;
+            if(v.match(/[0-9]/)) p += 33;
+            if(v.match(/[^a-zA-Z0-9]/)) p += 34;
+            bar.style.width = p + "%";
+            bar.style.background = p < 100 ? "orange" : "#2ecc71";
+            if(p >= 100) { btn.disabled = false; btn.style.background = "#1877f2"; btn.style.cursor = "pointer"; }
+            else { btn.disabled = true; btn.style.background = "gray"; }
+        }
+
+        function register() {
+            const db = getDB();
+            const u = document.getElementById('rUser').value.trim();
+            const p = document.getElementById('rPass').value;
+            if(db.some(user => user.username.toLowerCase() === u.toLowerCase())) return alert("This name is already created!");
+            
+            db.push({ username: u, password: p, friends: 0, following: 0, followers: 0, verified: false, email: "" });
+            localStorage.setItem('studio_db', JSON.stringify(db));
+            alert("Success! Please Login."); swap();
+        }
+
+        function login() {
+            const db = getDB();
+            const u = document.getElementById('lUser').value.trim();
+            const p = document.getElementById('lPass').value;
+            const user = db.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+            if(user) { localStorage.setItem('currentUser', JSON.stringify(user)); window.location.href = 'dashboard.html'; }
+            else { alert("Incorrect details."); }
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Studio Lite - Secure Auth</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5;">
 
-    <div class="fade-in" style="width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow);">
-        <h1 style="text-align: center; color: var(--primary); margin-bottom: 5px;">Studio Lite site</h1>
-        <p style="text-align: center; font-size: 12px; color: gray; margin-bottom: 20px;">International Security Protocol</p>
-        
-        <div id="loginForm">
-            <input type="text" id="lUser" placeholder="Username" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box; border-radius:8px; border:1px solid #ddd;">
-            <input type="password" id="lPass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; box-sizing:border-box; border-radius:8px; border:1px solid #ddd;">
-            <button class="btn-primary" onclick="login()" style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">LOGIN</button>
-            <p style="text-align:center; font-size: 14px;">Don't have an account? <a href="#" onclick="swap()">Sign Up</a></p>
-        </div>
-
-        <div id="regForm" style="display:none;">
-            <input type="text" id="rUser" placeholder="Choose Username" style="width:100%; padding:12px; margin:5px 0; box-sizing:border-box; border-radius:8px; border:1px solid #ddd;">
-            <input type="password" id="rPass" placeholder="Create Password" oninput="validatePass(this.value)" style="width:100%; padding:12px; margin:5px 0; box-sizing:border-box; border-radius:8px; border:1px solid #ddd;">
-            
-            <div class="meter-container" style="height:8px; background:#eee; border-radius:4px; margin:10px 0;">
-                <div id="meter-bar" style="height:100%; width:0%; transition:0.4s; border-radius:4px;"></div>
-            </div>
-            <small id="passLabel" style="font-size:11px; font-weight:bold; color:gray;">Security: Letters + Numbers + Symbols</small>
-            
-            <button id="regBtn" disabled onclick="register()" style="width:100%; background:gray; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; margin-top:15px; cursor:not-allowed;">CREATE ACCOUNT</button>
-            <p style="text-align:center; font-size: 14px;"><a href="#" onclick="swap()">Back to Login</a></p>
-        </div>
-    </div>
-
-    <script>
-        // CORE DATABASE ENGINE
-        // This pulls the existing users from localStorage every time the page loads
-        function getDB() {
-            return JSON.parse(localStorage.getItem('studio_db')) || [];
-        }
-
-        function swap() {
-            document.getElementById('loginForm').style.display = document.getElementById('loginForm').style.display === 'none' ? 'block' : 'none';
-            document.getElementById('regForm').style.display = document.getElementById('regForm').style.display === 'none' ? 'block' : 'none';
-        }
-
-        // PASSWORD STRENGTH LOGIC
-        function validatePass(v) {
-            let bar = document.getElementById('meter-bar');
-            let btn = document.getElementById('regBtn');
-            let label = document.getElementById('passLabel');
-            let p = 0;
-
-            if(v.match(/[a-zA-Z]/)) p += 33;
-            if(v.match(/[0-9]/)) p += 33;
-            if(v.match(/[^a-zA-Z0-9]/)) p += 34;
-            
-            bar.style.width = p + "%";
-            
-            if(p < 40) { bar.style.background = "red"; label.innerText = "Status: EASY (Needs Numbers/Symbols)"; }
-            else if(p < 90) { bar.style.background = "orange"; label.innerText = "Status: HARD (Add Symbols)"; }
-            else { bar.style.background = "#2ecc71"; label.innerText = "Status: EXTREME (Ready!)"; }
-            
-            if(p >= 100) {
-                btn.disabled = false;
-                btn.style.background = "#1877f2";
-                btn.style.cursor = "pointer";
-            } else {
-                btn.disabled = true;
-                btn.style.background = "gray";
-                btn.style.cursor = "not-allowed";
-            }
-        }
-
-        // REGISTER LOGIC (FIXED)
-        function register() {
-            const db = getDB();
-            const u = document.getElementById('rUser').value.trim();
-            const p = document.getElementById('rPass').value;
-
-            if(!u) return alert("Please enter a username.");
-
-            // FIX: Check if username exists in the ACTUAL database array
-            const exists = db.some(user => user.username.toLowerCase() === u.toLowerCase());
-            
-            if(exists) {
-                alert("Error: The name '" + u + "' is already taken. Please choose another.");
-                return;
-            }
-            
-            // If not existing, add to database
-            const newUser = { 
-                username: u, 
-                password: p, 
-                friends: 0, 
-                following: 0, 
-                followers: 0, 
-                posts: 0,
-                joinedDate: new Date().toLocaleDateString()
-            };
-
-            db.push(newUser);
-            localStorage.setItem('studio_db', JSON.stringify(db));
-            
-            alert("Account successfully created for " + u + "!");
-            swap(); // Go back to login
-        }
-
-        // LOGIN LOGIC (FIXED)
-        function login() {
-            const db = getDB();
-            const u = document.getElementById('lUser').value.trim();
-            const p = document.getElementById('lPass').value;
-
-            // Search through the entire database for a match
-            const userFound = db.find(user => user.username.toLowerCase() === u.toLowerCase() && user.password === p);
-
-            if(userFound) {
-                // Save session for the dashboard
-                localStorage.setItem('currentUser', JSON.stringify(userFound));
-                window.location.href = 'dashboard.html';
-            } else {
-                alert("Login Failed: Incorrect username or password.");
-            }
-        }
-    </script>
-</body>
-</html>
