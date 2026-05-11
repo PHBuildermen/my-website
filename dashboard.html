@@ -1,325 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <nav class="navbar">
-        <button class="icon-btn" onclick="toggle('sets')"><i class="fas fa-cog"></i></button>
-        <div class="nav-title">Studio Lite site</div>
-        <div style="position:relative;">
-            <button class="icon-btn" onclick="toggle('notifs')"><i class="fas fa-bell"></i></button>
-            <span id="badge" style="position:absolute;top:0;right:0;background:red;color:white;font-size:10px;padding:2px 5px;border-radius:50%;">0</span>
-        </div>
-        
-        <div id="sets" style="display:none; position:absolute; top:65px; left:16px; background:white; box-shadow:var(--shadow); border-radius:10px; width:150px; z-index:5000;">
-            <button onclick="goView('profile')" style="width:100%; padding:15px; border:none; background:none; text-align:left;">Profile</button>
-            <button onclick="logout()" style="width:100%; padding:15px; border:none; background:none; text-align:left; color:red;">Logout</button>
-        </div>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<div class="navbar">
+<h3>Studio Lite</h3>
+<button onclick="logout()">Logout</button>
+</div>
 
-    <nav class="navbar">
-        <div class="nav-title">Studio Lite site</div>
-        <button class="icon-btn" onclick="logout()" style="border:none; background:none;"><i class="fas fa-sign-out-alt"></i></button>
-    </nav>
+<!-- HOME -->
+<div id="home">
+<div id="feed"></div>
+</div>
 
-    <div id="homeView" class="fade-in" style="padding:15px;">
-        <div id="feedList"></div>
+<!-- PROFILE -->
+<div id="profile" style="display:none;">
+<h2 id="pName"></h2>
+<p id="pStats"></p>
+<button onclick="editProfile()">Edit</button>
+</div>
+
+<!-- UPLOAD -->
+<div id="upload" style="display:none;">
+<input id="title" placeholder="Title">
+<input id="file" type="file">
+<button onclick="upload()">Upload</button>
+</div>
+
+<div class="bottom">
+<button onclick="show('home')">Home</button>
+<button onclick="show('upload')">Upload</button>
+<button onclick="show('profile')">Profile</button>
+</div>
+
+<script>
+const DB_KEY = "studio_db";
+const USER_KEY = "currentUserId";
+const POSTS = "all_posts";
+const REELS = "all_reels";
+
+function getDB(){
+  return JSON.parse(localStorage.getItem(DB_KEY)) || [];
+}
+function setDB(db){
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+}
+
+function getUser(){
+  let id = localStorage.getItem(USER_KEY);
+  return getDB().find(u => u.id == id);
+}
+
+let user = getUser();
+if(!user) location.href="index.html";
+
+function show(v){
+  home.style.display = v==="home"?"block":"none";
+  upload.style.display = v==="upload"?"block":"none";
+  profile.style.display = v==="profile"?"block":"none";
+  if(v==="profile") loadProfile();
+}
+
+function loadProfile(){
+  pName.innerText = user.username;
+  let posts = JSON.parse(localStorage.getItem(POSTS)) || [];
+  let my = posts.filter(p => p.authorId == user.id);
+  pStats.innerText = "Posts: " + my.length;
+}
+
+function upload(){
+  let file = document.getElementById("file").files[0];
+  let title = document.getElementById("title").value;
+
+  if(!file || !title) return alert("Missing");
+
+  let reader = new FileReader();
+  reader.onload = e => {
+    let posts = JSON.parse(localStorage.getItem(POSTS)) || [];
+
+    posts.push({
+      id: Date.now(),
+      author: user.username,
+      authorId: user.id,
+      title,
+      data: e.target.result
+    });
+
+    localStorage.setItem(POSTS, JSON.stringify(posts));
+    alert("Uploaded!");
+    location.reload();
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function loadFeed(){
+  let posts = JSON.parse(localStorage.getItem(POSTS)) || [];
+  feed.innerHTML = [...posts].reverse().map(p => `
+    <div class="card">
+      <b>${p.author}</b>
+      <p>${p.title}</p>
+      <img src="${p.data}">
     </div>
+  `).join("");
+}
 
-    <div id="reelsView" class="fade-in" style="display:none; padding:15px;">
-        <div id="reelsList"></div>
-    </div>
+function editProfile(){
+  let newName = prompt("New username:", user.username);
+  if(!newName) return;
 
-    <div id="profileView" class="fade-in" style="display:none; padding:15px; text-align:center;">
-        <h2 id="uNameDisp">User</h2>
-        <div style="display:flex; justify-content:space-around; margin:20px 0;">
-            <div><b id="sPosts">0</b><br>Posts</div>
-            <div><b id="sFollowers">0</b><br>Followers</div>
-            <div><b id="sFriends">0</b><br>Friends</div>
-        </div>
-        <button onclick="openEdit()" style="width:100%; padding:12px; border-radius:8px; border:none; background:#e4e6eb; font-weight:600;">Edit Profile</button>
-    </div>
+  let db = getDB();
+  let i = db.findIndex(u => u.id == user.id);
+  db[i].username = newName;
 
-    <div id="editMod" class="modal">
-        <div class="modal-content">
-            <h3>Edit Profile</h3>
-            <input type="text" id="eNick" placeholder="Change Nickname" style="width:100%; margin-bottom:10px; padding:10px;">
-            <div style="border-top:1px solid #eee; padding-top:10px;">
-                <label style="font-size:12px;">Link Gmail (Real App):</label>
-                <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input type="email" id="eMail" placeholder="yourname@gmail.com" style="flex:1; padding:8px;">
-                    <button onclick="sendRealEmail()" style="background:#db4437; color:white; border:none; padding:8px; border-radius:5px;">Verify</button>
-                </div>
-            </div>
-            <button onclick="saveProfile()" class="btn-primary" style="margin-top:20px; width:100%; background:var(--primary); color:white; padding:12px; border:none; border-radius:8px;">Save Changes</button>
-            <button onclick="closeMod('editMod')" style="width:100%; background:none; border:none; margin-top:10px;">Cancel</button>
-        </div>
-    </div>
+  setDB(db);
+  user = db[i];
 
-    <div id="upMod" class="modal">
-        <div class="modal-content">
-            <h3>Upload Content</h3>
-            <select id="uType" style="width:100%; padding:10px; margin-bottom:10px;">
-                <option value="post">Standard Post</option>
-                <option value="reel">Reel (Video)</option>
-            </select>
-            <input type="text" id="uTitle" placeholder="Title" style="width:100%; margin-bottom:10px; padding:10px;">
-            <input type="file" id="uFile" style="width:100%; margin-bottom:10px;">
-            <button onclick="handleUpload()" class="btn-primary" style="width:100%; background:var(--primary); color:white; padding:12px; border:none; border-radius:8px;">UPLOAD</button>
-            <button onclick="closeMod('upMod')" style="width:100%; background:none; border:none; margin-top:10px;">Cancel</button>
-        </div>
-    </div>
+  alert("Updated");
+  location.reload();
+}
 
-    <div class="bottom-nav">
-        <button class="nav-item active" onclick="go('home')"><i class="fas fa-home"></i><span>Home</span></button>
-        <button class="nav-item" onclick="go('reels')"><i class="fas fa-play-circle"></i><span>Reels</span></button>
-        <button class="nav-item" onclick="openMod('upMod')"><i class="fas fa-plus-square"></i><span>Upload</span></button>
-        <button class="nav-item" onclick="go('profile')"><i class="fas fa-user-circle"></i><span>Profile</span></button>
-    </div>
+function logout(){
+  localStorage.removeItem(USER_KEY);
+  location.href="index.html";
+}
 
-    <script>
-        let user = JSON.parse(localStorage.getItem('currentUser'));
-        if(!user) window.location.href = 'index.html';
+loadFeed();
+</script>
 
-        function go(v) {
-            document.getElementById('homeView').style.display = v==='home'?'block':'none';
-            document.getElementById('reelsView').style.display = v==='reels'?'block':'none';
-            document.getElementById('profileView').style.display = v==='profile'?'block':'none';
-            if(v==='profile') refreshProfile();
-            document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', (v==='home'&&i===0)||(v==='reels'&&i===1)||(v==='profile'&&i===3)));
-        }
-
-        function refreshProfile() {
-            document.getElementById('uNameDisp').innerHTML = user.username + (user.verified ? ' <i class="fas fa-check-circle verified-icon"></i>' : '');
-            document.getElementById('sFriends').innerText = user.friends;
-            document.getElementById('sFollowers').innerText = user.followers;
-            let posts = JSON.parse(localStorage.getItem('all_posts')) || [];
-            document.getElementById('sPosts').innerText = posts.filter(p => p.author === user.username).length;
-        }
-
-        function openMod(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeMod(id) { document.getElementById(id).style.display = 'none'; }
-        function openEdit() { document.getElementById('eNick').value = user.username; openMod('editMod'); }
-
-        function sendRealEmail() {
-            const email = document.getElementById('eMail').value;
-            if(!email.includes('@')) return alert("Enter valid Gmail");
-            const body = encodeURIComponent(`Admin, please verify my Studio Lite account.\n\nUsername: ${user.username}\nEmail: ${email}`);
-            window.location.href = `mailto:admin@studiolite.com?subject=Verification&body=${body}`;
-            alert("Gmail App Opening... Please send the email.");
-        }
-
-        function saveProfile() {
-            user.username = document.getElementById('eNick').value;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            // Update global DB too
-            let db = JSON.parse(localStorage.getItem('studio_db'));
-            let idx = db.findIndex(u => u.password === user.password);
-            db[idx] = user;
-            localStorage.setItem('studio_db', JSON.stringify(db));
-            alert("Saved!"); location.reload();
-        }
-
-        function handleUpload() {
-            const file = document.getElementById('uFile').files[0];
-            const title = document.getElementById('uTitle').value;
-            if(!file || !title) return alert("Missing data");
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const item = { id: Date.now(), author: user.username, title, data: e.target.result, likes: 0, views: 0 };
-                const type = document.getElementById('uType').value;
-                let storageKey = type === 'post' ? 'all_posts' : 'all_reels';
-                let current = JSON.parse(localStorage.getItem(storageKey)) || [];
-                current.push(item);
-                localStorage.setItem(storageKey, JSON.stringify(current));
-                alert("Uploaded!"); location.reload();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function loadAll() {
-            let p = JSON.parse(localStorage.getItem('all_posts')) || [];
-            document.getElementById('feedList').innerHTML = p.reverse().map(x => `
-                <div class="post-card fade-in">
-                    <b>${x.author}</b>
-                    <h3>${x.title}</h3>
-                    <img src="${x.data}" style="width:100%; border-radius:8px;">
-                    <p style="font-size:12px; color:gray;"><i class="fas fa-heart"></i> ${x.likes} Likes</p>
-                </div>
-            `).join('');
-
-            let r = JSON.parse(localStorage.getItem('all_reels')) || [];
-            document.getElementById('reelsList').innerHTML = r.reverse().map(x => `
-                <div class="post-card fade-in">
-                    <b>${x.author}</b>
-                    <h3>${x.title}</h3>
-                    <video class="reel-video" src="${x.data}" controls></video>
-                    <p style="font-size:12px; color:gray;"><i class="fas fa-eye"></i> ${x.views} Views</p>
-                </div>
-            `).join('');
-        }
-
-        function logout() { localStorage.removeItem('currentUser'); window.location.href = 'index.html'; }
-        loadAll();
-    </script>
 </body>
 </html>
-
-
-        <div id="notifs" style="display:none; position:absolute; top:65px; right:16px; background:white; box-shadow:var(--shadow); border-radius:10px; width:250px; z-index:5000; max-height:300px; overflow-y:auto;">
-            <p style="padding:10px; font-weight:bold; border-bottom:1px solid #eee;">Notifications</p>
-            <div id="notif-list"></div>
-        </div>
-    </nav>
-
-    <div id="view-home" class="container">
-        <div style="padding:15px;"><input type="text" placeholder="Search for people or posts..." onkeyup="loadFeed(this.value)" style="width:100%; padding:12px; border-radius:25px; border:none; background:white; box-shadow:var(--shadow);"></div>
-        <div id="main-feed"></div>
-    </div>
-
-    <div id="view-profile" style="display:none; padding:20px; text-align:center;">
-        <img id="uPic" src="https://via.placeholder.com/150" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);">
-        <h2 id="uName">Name <i id="vCheck" class="fas fa-check-circle" style="color:#2ecc71; display:none;"></i></h2>
-        <p id="uNick" style="color:gray;">@nickname</p>
-        <div style="display:flex; justify-content:center; gap:20px; font-weight:bold; margin:15px 0;">
-            <div><span id="pCount">0</span><br><small>Posts</small></div>
-            <div>1.5k<br><small>Followers</small></div>
-            <div>900<br><small>Following</small></div>
-        </div>
-        <button class="btn-primary" onclick="toggle('editMod')">Edit Profile</button>
-        <hr><div id="my-feed"></div>
-    </div>
-
-    <div id="postMod" class="modal">
-        <div class="modal-content">
-            <h3>Create Post</h3>
-            <input type="text" id="postT" placeholder="Title" style="width:100%; padding:10px; margin-bottom:10px;">
-            <input type="text" id="postL" placeholder="External Link" style="width:100%; padding:10px; margin-bottom:10px;">
-            <textarea id="postD" placeholder="What's on your mind?" rows="4" style="width:100%; padding:10px;"></textarea>
-            <div id="postLoad" style="display:none; text-align:center;">Processing...</div>
-            <p id="postCD" style="display:none; color:red; text-align:center;">Wait <span id="cd">30</span>s</p>
-            <button id="postB" class="btn-primary" onclick="submitPost()">Post Now</button>
-            <button onclick="toggle('postMod')" style="width:100%; background:none; border:none; margin-top:10px;">Cancel</button>
-        </div>
-    </div>
-
-    <div id="editMod" class="modal">
-        <div class="modal-content">
-            <h3>Edit Profile</h3>
-            <input type="text" id="eName" placeholder="Real Name" style="width:100%; margin-bottom:10px;">
-            <input type="text" id="eNick" placeholder="Nickname" style="width:100%; margin-bottom:10px;">
-            <input type="file" id="eFile" accept="image/*" style="width:100%; margin-bottom:10px;">
-            <div style="display:flex; gap:5px;">
-                <input type="email" id="eMail" placeholder="Add Email" style="flex:1;">
-                <button onclick="simulateVerify()" style="padding:5px;">Link</button>
-            </div>
-            <button class="btn-primary" style="margin-top:15px;" onclick="saveProfile()">Save All</button>
-            <button onclick="toggle('editMod')" style="width:100%; background:none; border:none; margin-top:10px;">Close</button>
-        </div>
-    </div>
-
-    <div id="simMod" class="modal">
-        <div class="modal-content" style="text-align:center;">
-            <h3>Email Verification</h3>
-            <p>Verify <b><span id="targetM"></span></b>?</p>
-            <button class="btn-primary" onclick="finishVerify()">Accept</button>
-            <button onclick="toggle('simMod')" style="width:100%; background:red; color:white; border:none; padding:10px; border-radius:8px; margin-top:10px;">Decline</button>
-        </div>
-    </div>
-
-    <div class="bottom-nav">
-        <button class="nav-item active" onclick="goView('home')"><i class="fas fa-home"></i><span>Home</span></button>
-        <button class="nav-item" onclick="toggle('postMod')"><i class="fas fa-plus-circle"></i><span>Post</span></button>
-        <button class="nav-item"><i class="fas fa-video"></i><span>Reels</span></button>
-        <button class="nav-item"><i class="fas fa-store"></i><span>Market</span></button>
-        <button class="nav-item" onclick="goView('profile')"><i class="fas fa-user-circle"></i><span>Profile</span></button>
-    </div>
-
-    <script>
-        const user = localStorage.getItem('username');
-        let cd = false;
-        let data = JSON.parse(localStorage.getItem('studio_data')) || {
-            real: "Studio Member", nick: user, pic: "https://via.placeholder.com/150",
-            email: "", verified: false, nTime: 0, pTime: 0, notifs: []
-        };
-
-        function toggle(id) { let e = document.getElementById(id); e.style.display = (e.style.display==='flex'||e.style.display==='block') ? 'none' : (id.includes('Mod')?'flex':'block'); }
-        
-        function goView(v) {
-            document.getElementById('view-home').style.display = v==='home'?'block':'none';
-            document.getElementById('view-profile').style.display = v==='profile'?'block':'none';
-            if(v==='profile') loadProfile();
-            document.querySelectorAll('.nav-item').forEach((b,i)=> b.classList.toggle('active', (i===0&&v==='home')||(i===4&&v==='profile')));
-        }
-
-        function loadProfile() {
-            document.getElementById('uPic').src = data.pic;
-            document.getElementById('uName').innerHTML = data.real + (data.verified ? ' <i class="fas fa-check-circle" style="color:#2ecc71"></i>' : '');
-            document.getElementById('uNick').innerText = "@" + data.nick;
-            let posts = JSON.parse(localStorage.getItem('studio_posts')) || [];
-            let my = posts.filter(p => p.author === user);
-            document.getElementById('pCount').innerText = my.length;
-            loadFeed('', 'my-feed');
-        }
-
-        function saveProfile() {
-            const now = Date.now();
-            const n = document.getElementById('eName').value;
-            const nk = document.getElementById('eNick').value;
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Lite Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <nav class="navbar">
-        <div class="nav-title">Studio Lite site</div>
-        <button class="icon-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
-    </nav>
-
-    <div id="homeView" class="fade-in" style="padding:15px;">
-        <div id="feedList"></div>
-    </div>
-
-    <div id="reelsView" class="fade-in" style="display:none; padding:15px;">
-        <div id="reelsList"></div>
-    </div>
-
-    <div id="profileView" class="fade-in" style="display:none;">
-        <div class="stat-box">
-            <div class="stat-item"><b id="sFriends">0</b>Friends</div>
-            <div class="stat-item"><b id="sFollowers">0</b>Followers</div>
-            <div class="stat-item"><b id="sFollowing">0</b>Following</div>
-            <div class="stat-item"><b id="sPosts">0</b>Posts</div>
-        </div>
-        <div id="myHistory"></div>
-    </div>
-
-    <div id="uploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:20px; border-radius:15px; width:90%; max-width:400px;">
-            <h3>Upload Content</h3>
-            <select id="uploadType" style="width:100%; padding:10px; margin-bottom:10px;">
-                <option value="post">Standard Post</option>
-                <option value="reel">Reel (Video)</option>
-            </select>
-            <input type="text" id="uTitle" placeholder="Title" style="width:100%; margin-bottom:10px;">
-            <input type="file" id="uFile" style="width:100%; margin-bottom:10px;">
-            <div id="progContainer" style="display:none;">
