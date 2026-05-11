@@ -3,33 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - My Website</title>
+    <title>Dashboard - Studio Lite</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <nav class="navbar">
+        <h1>Studio Lite</h1>
+        <button onclick="logout()" style="background:#ff4757; border:none; color:white; padding:5px 15px; border-radius:5px; cursor:pointer;">Logout</button>
+    </nav>
+
     <div class="container">
-        <h2 id="welcomeMsg">Welcome!</h2>
-        <p>You are now logged in to your private dashboard.</p>
-        <button onclick="logout()" style="background-color: #dc3545;">Logout</button>
+        <div class="profile-section">
+            <div class="profile-pic" id="initials">U</div>
+            <div>
+                <h2 style="margin:0;" id="displayName">User Name</h2>
+                <p style="margin:0; color:gray;">Studio Lite Member</p>
+            </div>
+        </div>
+
+        <div class="post-card">
+            <h3>Create a Post</h3>
+            <input type="text" id="postTitle" placeholder="Ano ang title ng post mo?">
+            <input type="text" id="postLink" placeholder="Link (URL)">
+            <textarea id="postDesc" rows="3" placeholder="Description..."></textarea>
+            <button class="btn-post" onclick="submitPost()">Post na!</button>
+        </div>
+
+        <hr>
+        <h3>Recent Posts</h3>
+        <div id="postFeed">
+            </div>
     </div>
 
     <script>
-        // Check kung may naka-login ba talaga
-        const loggedInUser = localStorage.getItem('isLoggedIn');
-
-        if (loggedInUser !== 'true') {
-            alert('Security Alert: Login muna bago pumasok!');
+        // Check Login Status
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
             window.location.href = 'index.html';
-        } else {
-            const user = localStorage.getItem('username');
-            document.getElementById('welcomeMsg').innerText = `Welcome, ${user}!`;
+        }
+
+        // Load Profile Info
+        const user = localStorage.getItem('username') || "Guest";
+        document.getElementById('displayName').innerText = user;
+        document.getElementById('initials').innerText = user.charAt(0).toUpperCase();
+
+        // Load Posts from LocalStorage
+        function loadPosts() {
+            const feed = document.getElementById('postFeed');
+            const posts = JSON.parse(localStorage.getItem('studioPosts')) || [];
+            
+            feed.innerHTML = posts.map((post, index) => `
+                <div class="post-card">
+                    <h3>${post.title}</h3>
+                    <p>${post.description}</p>
+                    <a href="${post.link}" target="_blank">Visit Link &rarr;</a>
+                    <br><br>
+                    <small style="color:gray;">Posted by: ${post.author}</small>
+                </div>
+            `).reverse().join('');
+        }
+
+        // Submit Post Function
+        function submitPost() {
+            const title = document.getElementById('postTitle').value;
+            const link = document.getElementById('postLink').value;
+            const desc = document.getElementById('postDesc').value;
+
+            if(!title || !link || !desc) {
+                alert("Uy, kumpletuhin mo naman ang fields!");
+                return;
+            }
+
+            const newPost = {
+                title: title,
+                link: link,
+                description: desc,
+                author: user
+            };
+
+            const posts = JSON.parse(localStorage.getItem('studioPosts')) || [];
+            posts.push(newPost);
+            localStorage.setItem('studioPosts', JSON.stringify(posts));
+
+            // Clear inputs
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postLink').value = '';
+            document.getElementById('postDesc').value = '';
+
+            loadPosts(); // Refresh feed
         }
 
         function logout() {
             localStorage.removeItem('isLoggedIn');
-            alert('Logged out successfully.');
             window.location.href = 'index.html';
         }
+
+        // Initial Load
+        loadPosts();
     </script>
 </body>
 </html>
