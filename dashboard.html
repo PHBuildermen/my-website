@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - My Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2 id="welcomeMsg">Welcome!</h2>
+        <p>You are now logged in to your private dashboard.</p>
+        <button onclick="logout()" style="background-color: #dc3545;">Logout</button>
+    </div>
+
+    <script>
+        // Check kung may naka-login ba talaga
+        const loggedInUser = localStorage.getItem('isLoggedIn');
+
+        if (loggedInUser !== 'true') {
+            alert('Security Alert: Login muna bago pumasok!');
+            window.location.href = 'index.html';
+        } else {
+            const user = localStorage.getItem('username');
+            document.getElementById('welcomeMsg').innerText = `Welcome, ${user}!`;
+        }
+
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            alert('Logged out successfully.');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
